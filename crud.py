@@ -1,9 +1,61 @@
-from sqlmodel import Session, select
-from models import User, ExamType, Score, UserRole
+from sqlmodel import Session, select, delete
+from models import User, ExamType, Score, UserRole, SubmissionLog, SubmissionStatus
 import pandas as pd
 from typing import List, Dict, Any, Tuple
 import json
-from sqlmodel import Session, select, delete
+
+def delete_exam(session: Session, exam_id: int):
+    # Delete associated scores and submissions first (cascade usually handles this if configured, but let's be safe)
+    session.exec(delete(Score).where(Score.exam_type_id == exam_id))
+    session.exec(delete(SubmissionLog).where(SubmissionLog.exam_type_id == exam_id))
+    
+    exam = session.get(ExamType, exam_id)
+    if exam:
+        session.delete(exam)
+        session.commit()
+
+def toggle_exam_submission(session: Session, exam_id: int, is_open: bool):
+    exam = session.get(ExamType, exam_id)
+    if exam:
+        exam.is_open_for_submission = is_open
+        session.add(exam)
+        session.commit()
+
+def create_submission_log(session: Session, log: SubmissionLog):
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+    return log
+
+def get_student_submission_status(session: Session, user_id: int, exam_id: int):
+    """
+    Returns (attempt_count, current_status)
+    """
+    submissions = session.exec(select(SubmissionLog).where(
+        SubmissionLog.user_id == user_id, 
+        SubmissionLog.exam_type_id == exam_id
+    ).order_by(SubmissionLog.last_attempt_time.desc())).all()
+    
+    # Calculate total attempts (count of logs? or one log object per exam?)
+    # Plan says: "Track attempts... Fields: attempt_count". 
+    # Let's assume one log record PER attempt if we want history, or one record per user-exam pair updated.
+    # The models.py definition allows multiple logs. Let's append logs. 
+    # Actually, simpler model: One row per attempt. 
+    # Or strict count: Query count of rows.
+    
+    # BUT wait, the plan implies we want to enforce 3 attempts.
+    # Let's count how many logs exist for this user+exam.
+    
+    count = len(submissions)
+    
+    # Check if any is approved
+    is_approved = any(s.status == SubmissionStatus.APPROVED for s in submissions)
+    status = SubmissionStatus.APPROVED if is_approved else SubmissionStatus.PENDING
+    if count > 0 and not is_approved:
+        # Determine strict status from last log
+        status = submissions[0].status
+        
+    return count, status
 
 def get_user_by_email(session: Session, email: str) -> User | None:
     statement = select(User).where(User.email == email)

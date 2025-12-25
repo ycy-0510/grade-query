@@ -5,19 +5,21 @@ from starlette.middleware.sessions import SessionMiddleware
 from typing import List, Optional
 import os
 import json
+import httpx
+import google.generativeai as genai
+from PIL import Image
+import io
 
 from database import init_db, get_session
-from models import User, Score, ExamType, UserRole
+from models import User, Score, ExamType, UserRole, SubmissionLog, SubmissionStatus
 from sqlmodel import Session, select
 from auth import oauth
-from crud import process_excel_upload, calculate_student_grades, create_user, get_user_by_email, process_student_upload, get_score_matrix, bulk_update_scores, export_db_to_json, import_db_from_json, generate_grades_excel
-
-
-
-
-
-
-
+from crud import (
+    process_excel_upload, calculate_student_grades, create_user, get_user_by_email, 
+    process_student_upload, get_score_matrix, bulk_update_scores, export_db_to_json, 
+    import_db_from_json, generate_grades_excel, delete_exam, toggle_exam_submission,
+    create_submission_log, get_student_submission_status
+)
 
 app = FastAPI()
 SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe_dev_secret")
@@ -25,9 +27,31 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 templates = Jinja2Templates(directory="templates")
 
+# --- AI Configuration ---
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY")
+
 @app.on_event("startup")
 def on_startup():
     init_db()
+
+async def verify_turnstile(token: str, ip: str) -> bool:
+    if not TURNSTILE_SECRET_KEY:
+        return True # Bypass if not configured
+    
+    url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    data = {
+        "secret": TURNSTILE_SECRET_KEY,
+        "response": token,
+        "remoteip": ip
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, data=data)
+        result = response.json()
+        return result.get("success", False)
 
 # --- Auth Routes ---
 @app.get("/login/google")
@@ -129,6 +153,42 @@ async def upload_grades(request: Request, files: List[UploadFile] = File(...), s
         "exams": exams, 
         "error": f"Processed {len(files)} files! Total Stats: {total_stats}" 
     }) 
+
+@app.post("/admin/exams/create")
+async def create_exam_manual(request: Request, exam_name: str = Form(...), session: Session = Depends(get_session)):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    exam_name = exam_name.strip()
+    if not exam_name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+        
+    existing = session.exec(select(ExamType).where(ExamType.name == exam_name)).first()
+    if not existing:
+        new_exam = ExamType(name=exam_name)
+        session.add(new_exam)
+        session.commit()
+    
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/admin/exams/delete")
+async def delete_exam_route(request: Request, exam_id: int = Form(...), session: Session = Depends(get_session)):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    delete_exam(session, exam_id)
+    return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/admin/exams/toggle-submission")
+async def toggle_submission_route(request: Request, exam_id: int = Form(...), is_open: bool = Form(False), session: Session = Depends(get_session)):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    toggle_exam_submission(session, exam_id, is_open)
+    return RedirectResponse(url="/admin", status_code=303)
 
 @app.post("/admin/update-exams")
 async def update_exams_config(
@@ -258,4 +318,180 @@ async def student_dashboard(request: Request, session: Session = Depends(get_ses
         return RedirectResponse("/")
     
     report = calculate_student_grades(user['id'], session)
-    return templates.TemplateResponse("student.html", {"request": request, "report": report})
+    
+    # Check open submissions
+    open_submissions = []
+    # exams = session.exec(select(ExamType).where(ExamType.is_open_for_submission == True)).all() # type mismatch possible
+    # Just select all and filter
+    all_exams = session.exec(select(ExamType)).all()
+    
+    for exam in all_exams:
+        if exam.is_open_for_submission:
+            # Check if grade exists
+            has_grade = False
+            for detail in report['details']:
+                if detail['exam_name'] == exam.name:
+                    # If score is present, we consider it done. 
+                    # OR we check if we have a log. 
+                    # Spec: "Student sees grade not registered".
+                    has_grade = True
+                    break
+            
+            if not has_grade:
+                # Get status info
+                count, status = get_student_submission_status(session, user['id'], exam.id)
+                open_submissions.append({
+                    "id": exam.id,
+                    "name": exam.name,
+                    "attempt_count": count,
+                    "status": status,
+                    "can_submit": count < 3 and status != SubmissionStatus.APPROVED
+                })
+
+    return templates.TemplateResponse("student.html", {
+        "request": request, 
+        "report": report,
+        "open_submissions": open_submissions
+    })
+
+@app.get("/student/submit/{exam_id}", response_class=HTMLResponse)
+async def student_submit_page(request: Request, exam_id: int, session: Session = Depends(get_session)):
+    user = request.session.get('user')
+    if not user or user['role'] != 'student':
+        return RedirectResponse("/")
+        
+    exam = session.get(ExamType, exam_id)
+    if not exam or not exam.is_open_for_submission:
+        return RedirectResponse("/student")
+        
+    count, status = get_student_submission_status(session, user['id'], exam_id)
+    
+    if count >= 3 or status == SubmissionStatus.APPROVED:
+        # Already done or failed
+        return RedirectResponse("/student")
+        
+    return templates.TemplateResponse("submission.html", {
+        "request": request,
+        "exam": exam,
+        "turnstile_site_key": os.environ.get("TURNSTILE_SITE_KEY"),
+        "attempts_left": 3 - count
+    })
+
+@app.post("/student/submit/{exam_id}")
+async def student_submit_action(
+    request: Request, 
+    exam_id: int, 
+    score_claim: float = Form(...), 
+    image: UploadFile = File(...),
+    cf_turnstile_response: str = Form(alias="cf-turnstile-response"),
+    session: Session = Depends(get_session)
+):
+    try:
+        user = request.session.get('user')
+        if not user or user['role'] != 'student':
+            raise HTTPException(status_code=403, detail="Unauthorized")
+            
+        # 1. Verify Turnstile
+        client_ip = request.client.host
+        if not await verify_turnstile(cf_turnstile_response, client_ip):
+             return JSONResponse({"success": False, "error": "CAPTCHA Verification Failed"}, status_code=400)
+
+        # 2. Check Attempts
+        count, status = get_student_submission_status(session, user['id'], exam_id)
+        if count >= 3:
+             return JSONResponse({"success": False, "error": "Max attempts reached"}, status_code=400)
+        
+        if status == SubmissionStatus.APPROVED:
+             return JSONResponse({"success": True, "message": "Already approved"}, status_code=200)
+
+        # 3. AI Verification
+        exam = session.get(ExamType, exam_id)
+        if not exam:
+            return JSONResponse({"success": False, "error": "Exam not found"}, status_code=404)
+            
+        # Read image
+        content = await image.read()
+        try:
+            img = Image.open(io.BytesIO(content))
+        except Exception as e:
+            return JSONResponse({"success": False, "error": f"Invalid Image File: {str(e)}"}, status_code=400)
+        
+        # Prompt Construction
+        prompt = f"""
+        You are a strict teacher assistant verifying a student's exam paper upload.
+        
+        Expected Exam Name: "{exam.name}"
+        Student Claimed Score: {score_claim}
+        
+        Please analyze the image and return a JSON object with these fields:
+        - "detected_exam_name": string (name of exam found on paper, or null)
+        - "detected_score": number (final score found on paper, or null)
+        - "is_clear": boolean (is the image clear and legible?)
+        - "is_complete": boolean (does it look like a full exam paper?)
+        - "confidence": number (0-100, how confident are you that this is the correct exam with the claimed score?)
+        - "reason": string (explanation of your decision)
+        
+        Rules for high confidence (>75):
+        1. Image must be clear and readable.
+        2. Detected score MUST match Student Claimed Score exactly.
+        3. Detected exam name should match or be very similar to Expected Exam Name.
+        """
+        
+        # Use a model that supports vision
+        # Using 1.5-flash for reliability as 'gemini-2.5-flash-lite-preview-02-05' is not a standard public model name.
+        model = genai.GenerativeModel('gemini-2.5-flash-lite') 
+        
+        response = model.generate_content([prompt, img])
+        text_response = response.text
+        
+        # Clean response to get JSON
+        json_str = text_response.replace("```json", "").replace("```", "").strip()
+        try:
+            ai_data = json.loads(json_str)
+        except json.JSONDecodeError:
+            return JSONResponse({"success": False, "error": "AI response was not valid JSON"}, status_code=500)
+        
+        confidence = ai_data.get("confidence", 0)
+        
+        # 4. Process Logic
+        new_status = SubmissionStatus.REJECTED
+        error_msg = ai_data.get("reason", "Unknown error")
+        
+        if confidence > 75:
+            new_status = SubmissionStatus.APPROVED
+            # Save Score
+            new_score = Score(user_id=user['id'], exam_type_id=exam.id, score=score_claim)
+            session.add(new_score)
+        
+        # Create Log
+        log = SubmissionLog(
+            user_id=user['id'],
+            exam_type_id=exam.id,
+            attempt_count=count + 1,
+            status=new_status,
+            ai_response_json=json.dumps(ai_data)
+        )
+        create_submission_log(session, log)
+        
+        if new_status == SubmissionStatus.APPROVED:
+             return JSONResponse({"success": True, "redirect": "/student"})
+        else:
+             # Calculate remaining
+             attempts_used = count + 1
+             remaining = max(0, 3 - attempts_used)
+             
+             return JSONResponse({
+                 "success": False, 
+                 "error": "Verification Failed",
+                 "remaining_attempts": remaining,
+                 "detail": {
+                     "reason": error_msg,
+                     "confidence": confidence,
+                     "message": f"Our AI could not verify this submission. Reason: {error_msg}"
+                 }
+             }, status_code=400)
+             
+    except Exception as e:
+        import traceback
+        traceback.print_exc() # Print to console for Docker logs
+        return JSONResponse({"success": False, "error": f"Server Error: {str(e)}"}, status_code=500)

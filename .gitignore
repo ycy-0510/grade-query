@@ -4,3 +4,4 @@ __pycache__
 .vscode
 .venv
 /mysql_data
+__pycache__/

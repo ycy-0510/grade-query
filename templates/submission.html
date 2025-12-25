@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Grade - {{ exam.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="/student" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                    clip-rule="evenodd" />
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+        <div class="bg-indigo-600 px-8 py-6 text-white">
+            <h2 class="text-2xl font-bold">Grade Submission</h2>
+            <p class="text-indigo-200 mt-1">Exam: {{ exam.name }}</p>
+        </div>
+
+        <div class="p-8">
+            <div class="mb-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                <h4 class="font-bold text-blue-800 text-sm mb-1">AI Verification Active</h4>
+                <p class="text-sm text-blue-700">
+                    Your upload will be verified by artificial intelligence.
+                    Ensure your photo is <strong>clear, bright, and shows the full exam paper</strong> with the score
+                    visible.
+                </p>
+                <p class="text-xs text-blue-600 mt-2 font-semibold">Attempts Remaining: <span
+                        id="attemptsCount"></span>{{ attempts_left }}</span></p>
+            </div>
+
+            <form action="/student/submit/{{ exam.id }}" method="post" enctype="multipart/form-data" class="space-y-6"
+                id="submitForm">
+
+                <!-- Score Claim -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Claimed Score</label>
+                    <input type="number" step="0.5" name="score_claim" required placeholder="e.g. 85.5"
+                        class="block w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono text-lg">
+                    <p class="text-xs text-slate-500 mt-2">Enter the score exactly as written on your paper.</p>
+                </div>
+
+                <!-- File Upload -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Exam Photo</label>
+                    <div class="relative group">
+                        <input type="file" name="image" accept="image/*" required
+                            class="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all border border-dashed border-slate-300 rounded-xl cursor-pointer bg-slate-50 py-8 text-center">
+                    </div>
+                </div>
+
+                <!-- Turnstile -->
+                <div class="flex justify-center my-6">
+                    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                    <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="light"></div>
+                </div>
+
+                <!-- Result Display -->
+                <div id="resultCard" class="hidden mt-6 p-4 rounded-xl border">
+                    <div class="flex items-start gap-3">
+                        <div id="resultIcon" class="mt-0.5"></div>
+                        <div>
+                            <h4 id="resultTitle" class="font-bold text-lg"></h4>
+                            <p id="resultMessage" class="text-sm mt-1"></p>
+                            <div id="resultDetails" class="mt-3 text-xs font-mono bg-white/50 p-2 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" id="submitBtn"
+                    class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span id="btnText">Submit for Verification</span>
+                    <svg id="btnSpinner" class="animate-spin h-5 w-5 text-white hidden"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                </button>
+            </form>
+
+            <script>
+                document.getElementById('submitForm').onsubmit = async function (e) {
+                    e.preventDefault();
+
+                    const btn = document.getElementById('submitBtn');
+                    const btnText = document.getElementById('btnText');
+                    const btnSpinner = document.getElementById('btnSpinner');
+                    const resultCard = document.getElementById('resultCard');
+
+                    // Reset Result
+                    resultCard.classList.add('hidden');
+
+                    // UI Loading State
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75', 'cursor-wait');
+                    btnText.innerText = 'Analyzing Image (this may take 10s)...';
+                    btnSpinner.classList.remove('hidden');
+
+                    const formData = new FormData(this);
+
+                    try {
+                        const response = await fetch(this.action, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        // Update Attempts Count if provided
+                        if (result.remaining_attempts !== undefined) {
+                            const countSpan = document.getElementById('attemptsCount');
+                            if (countSpan) countSpan.innerText = result.remaining_attempts;
+
+                            if (result.remaining_attempts <= 0) {
+                                btn.disabled = true;
+                                btn.classList.add('bg-slate-400', 'cursor-not-allowed');
+                                btn.classList.remove('hover:bg-indigo-700', 'active:scale-[0.98]', 'bg-indigo-600');
+                                btnText.innerText = 'No Attempts Remaining';
+                                btnSpinner.classList.add('hidden');
+                                // Don't allow retry in finally block
+                                return;
+                            }
+                        }
+
+                        if (response.ok && result.success) {
+                            // Success - Redirect
+                            window.location.href = result.redirect || '/student';
+                        } else {
+                            // Show Result in DOM
+                            showResult(false, result);
+                        }
+                    } catch (err) {
+                        showResult(false, { error: "Network Error", detail: { message: err.message } });
+                    } finally {
+                        // Reset UI if we have attempts left
+                        if (!btn.innerText.includes('No Attempts')) {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-75', 'cursor-wait');
+                            btnText.innerText = 'Submit for Verification';
+                            btnSpinner.classList.add('hidden');
+
+                            // Reset Turnstile if needed
+                            if (window.turnstile) {
+                                turnstile.reset();
+                            }
+                        }
+                    }
+                };
+
+                function showResult(success, data) {
+                    const card = document.getElementById('resultCard');
+                    const title = document.getElementById('resultTitle');
+                    const message = document.getElementById('resultMessage');
+                    const details = document.getElementById('resultDetails');
+                    const icon = document.getElementById('resultIcon');
+
+                    card.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-900', 'bg-green-50', 'border-green-200', 'text-green-900');
+
+                    if (success) {
+                        // Ideally we redirect, but just in case
+                        card.classList.add('bg-green-50', 'border-green-200', 'text-green-900');
+                        title.innerText = "Verification Successful";
+                        message.innerText = "Your score has been recorded.";
+                    } else {
+                        card.classList.add('bg-red-50', 'border-red-200', 'text-red-900');
+                        title.innerText = data.error || "Verification Failed";
+
+                        if (data.detail && data.detail.message) {
+                            message.innerText = data.detail.message;
+                            details.innerHTML = `<strong>AI Confidence:</strong> ${data.detail.confidence || 0}%<br><strong>Reason:</strong> ${data.detail.reason || 'N/A'}`;
+                            details.classList.remove('hidden');
+                        } else {
+                            message.innerText = data.error || "Unknown error occurred.";
+                            details.classList.add('hidden');
+                        }
+
+                        icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                    }
+                    card.classList.remove('hidden');
+                }
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -48,6 +48,10 @@ A FastAPI-based high school grade query system with distinct roles for Students 
     
     # Initial Admin Setup
     INITIAL_ADMIN_EMAIL=your_email@gmail.com
+
+    GEMINI_API_KEY=your_key_here
+    TURNSTILE_SITE_KEY=your_site_key
+    TURNSTILE_SECRET_KEY=your_secret_key
     ```
 
 3.  **Run the Application**:

@@ -91,50 +91,101 @@
 
     <!-- Right Column -->
     <div class="space-y-8">
-        <!-- Exam Configs -->
+        <!-- Exam Management -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
-            <h4 class="text-lg font-bold text-slate-800 mb-2">Exam Configurations</h4>
-            <p class="text-sm text-slate-500 mb-6 border-l-4 border-indigo-500 pl-3 bg-indigo-50/50 py-2 rounded-r-lg">
-                Marking an exam as <span class="font-bold text-indigo-700">Mandatory</span> ensures it is included in
-                the top 20 calculation.
+            <h4 class="text-lg font-bold text-slate-800 mb-2">Exam Management</h4>
+
+            <!-- Create Exam Manual -->
+            <form action="/admin/exams/create" method="post" class="mb-6 flex gap-2">
+                <input type="text" name="exam_name" placeholder="New Exam Name" required
+                    class="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
+                <button type="submit"
+                    class="px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-900 transition-colors">
+                    Add Exam
+                </button>
+            </form>
+
+            <p class="text-sm text-slate-500 mb-4 border-l-4 border-indigo-500 pl-3 bg-indigo-50/50 py-2 rounded-r-lg">
+                <span class="font-bold text-indigo-700">Open for Submission</span> allows students to upload their own
+                grades.
             </p>
 
-            <form action="/admin/update-exams" method="post">
-                <div class="overflow-hidden rounded-xl border border-slate-200 mb-4">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
-                            <tr>
-                                <th class="px-5 py-3 border-b border-slate-200">Exam Name</th>
-                                <th class="px-5 py-3 border-b border-slate-200 text-right">Mandatory</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            {% for exam in exams %}
-                            <tr class="hover:bg-slate-50/80 transition-colors">
-                                <td class="px-5 py-3 text-sm font-medium text-slate-700">{{ exam.name }}</td>
-                                <td class="px-5 py-3 text-right">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" name="mandatory_exams" value="{{ exam.id }}"
-                                            class="sr-only peer" {% if exam.is_mandatory %}checked{% endif %}>
-                                        <div
-                                            class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
-                                        </div>
-                                    </label>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            {% if not exams %}
-                            <tr>
-                                <td colspan="2" class="px-5 py-4 text-center text-sm text-slate-400 italic">No exams
-                                    configured yet.</td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="overflow-x-auto rounded-xl border border-slate-200 mb-4">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
+                        <tr>
+                            <th class="px-5 py-3 border-b border-slate-200">Exam Name</th>
+                            <th class="px-5 py-3 border-b border-slate-200 text-center">Mandatory</th>
+                            <th class="px-5 py-3 border-b border-slate-200 text-center">Submission</th>
+                            <th class="px-5 py-3 border-b border-slate-200 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for exam in exams %}
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="px-5 py-3 text-sm font-medium text-slate-700">{{ exam.name }}</td>
+
+                            <!-- Mandatory Toggle (Global Form needed for valid state?) -> Actually better to have individual toggles or one form. 
+                                 Previous design was bulk update. Let's keep bulk update for Mandatory, OR switch to individual endpoints.
+                                 Let's stick to the BULK update logic for Mandatory for now to avoid breaking existing flow, 
+                                 BUT simpler UI: Just show Checkbox inside a master form? 
+                                 OR Separate actions. 
+                                 Let's keep the Form wrap for Mandatory, but injecting other buttons inside is messy.
+                                 Better: Row-based actions.
+                            -->
+                            <td class="px-5 py-3 text-center">
+                                <!-- Hack: Using a separate small form or just display status? 
+                                     The user wants to MANAGE exams. 
+                                     Let's make Mandatory part of the bulk update at the bottom, 
+                                     and others as individual actions.
+                                -->
+                                <input form="config-form" type="checkbox" name="mandatory_exams" value="{{ exam.id }}"
+                                    class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300" {% if
+                                    exam.is_mandatory %}checked{% endif %}>
+                            </td>
+
+                            <td class="px-5 py-3 text-center">
+                                <form action="/admin/exams/toggle-submission" method="post" class="inline">
+                                    <input type="hidden" name="exam_id" value="{{ exam.id }}">
+                                    <input type="hidden" name="is_open"
+                                        value="{% if exam.is_open_for_submission %}0{% else %}1{% endif %}">
+                                    <button type="submit"
+                                        class="px-3 py-1 text-xs font-bold rounded-full transition-colors {% if exam.is_open_for_submission %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-slate-100 text-slate-500 hover:bg-slate-200{% endif %}">
+                                        {% if exam.is_open_for_submission %}OPEN{% else %}CLOSED{% endif %}
+                                    </button>
+                                </form>
+                            </td>
+
+                            <td class="px-5 py-3 text-right">
+                                <form action="/admin/exams/delete" method="post" class="inline"
+                                    onsubmit="return confirm('Delete {{ exam.name }}? This removes ALL scores for this exam.');">
+                                    <input type="hidden" name="exam_id" value="{{ exam.id }}">
+                                    <button type="submit" class="text-red-500 hover:text-red-700 p-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                            fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not exams %}
+                        <tr>
+                            <td colspan="4" class="px-5 py-4 text-center text-sm text-slate-400 italic">No exams yet.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <form id="config-form" action="/admin/update-exams" method="post">
                 <button type="submit"
-                    class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md transition-all active:scale-[0.98]">
-                    Save Configurations
+                    class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md transition-all active:scale-[0.98]">
+                    Save Mandatory Settings
                 </button>
             </form>
         </div>

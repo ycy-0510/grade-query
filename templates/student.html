@@ -15,6 +15,45 @@
     </div>
 </div>
 
+<!-- Action Required -->
+{% if open_submissions %}
+<div class="mb-8">
+    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <span class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+        Action Required
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for exam in open_submissions %}
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <h4 class="font-bold text-slate-800 text-lg">{{ exam.name }}</h4>
+            <div class="flex items-center gap-2 mt-2 text-sm text-slate-500">
+                <span>Attempts: {{ exam.attempt_count }}/3</span>
+                {% if exam.status == 'rejected' %}
+                <span class="text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded">Rejected</span>
+                {% elif exam.status == 'pending' %}
+                <span class="text-yellow-500 font-bold bg-yellow-50 px-2 py-0.5 rounded">Pending</span>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                {% if exam.can_submit %}
+                <a href="/student/submit/{{ exam.id }}"
+                    class="block w-full text-center py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
+                    Submit Grade
+                </a>
+                {% else %}
+                <button disabled
+                    class="w-full py-2 bg-slate-100 text-slate-400 font-medium rounded-lg cursor-not-allowed">
+                    Submission Closed
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Summary Card -->
     <div class="lg:col-span-1">

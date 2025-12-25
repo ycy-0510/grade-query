@@ -3,11 +3,6 @@ version: '3.8'
 services:
   db:
     image: mysql:8.0
-    # Ensuring compatibility for ARM64 (Apple Silicon) if strict native image isn't available/working ideally.
-    # Often mysql:8.0 has arm64 support, but forcing platform can permit Rosetta usage if needed, 
-    # though native is better. Recent mysql:8.0 supports arm64 natively. 
-    # Valid pattern for local dev on generic machines:
-    # platform: linux/amd64  <-- Uncomment if native arm64 fails, but 8.0-oracle usually works.
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
@@ -17,8 +12,10 @@ services:
       - ./mysql_data:/var/lib/mysql
 
   web:
-    image: ycy10/grade-system:latest
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    build: .
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
     ports:
       - "8000:8000"
     environment:
