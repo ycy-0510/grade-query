@@ -10,5 +10,5 @@ httpx
 authlib
 starlette
 jinja2
-google-generativeai
+google-genai
 pillow

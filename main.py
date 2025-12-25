@@ -6,7 +6,8 @@ from typing import List, Optional
 import os
 import json
 import httpx
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from PIL import Image
 import io
 
@@ -31,8 +32,9 @@ templates.env.globals['translations'] = TRANSLATIONS
 
 # --- AI Configuration ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+client = None
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY")
 
@@ -469,37 +471,61 @@ async def student_submit_action(
             
         # Read image
         content = await image.read()
-        try:
-            img = Image.open(io.BytesIO(content))
-        except Exception as e:
-            return JSONResponse({"success": False, "error": f"Invalid Image File: {str(e)}"}, status_code=400)
+        mime_type = image.content_type or "image/jpeg"
         
         # Prompt Construction
-        prompt = f"""
-        You are a strict teacher assistant verifying a student's exam paper upload.
         
-        Expected Exam Name: "{exam.name}"
-        Student Claimed Score: {score_claim}
-        
-        Please analyze the image and return a JSON object with these fields:
-        - "detected_exam_name": string (name of exam found on paper, or null)
-        - "detected_score": number (final score found on paper, or null)
-        - "is_clear": boolean (is the image clear and legible?)
-        - "is_complete": boolean (does it look like a full exam paper?)
-        - "confidence": number (0-100, how confident are you that this is the correct exam with the claimed score?)
-        - "reason": string (explanation of your decision)
-        
-        Rules for high confidence (>75):
-        1. Image must be clear and readable.
-        2. Detected score MUST match Student Claimed Score exactly.
-        3. Detected exam name should match or be very similar to Expected Exam Name.
-        """
+        if not client:
+             return JSONResponse({"success": False, "error": "AI not configured"}, status_code=500)
+
+        # 1. System Instruction (Static Rules & Persona)
+        sys_instruct = """You are a diligent and thorough teacher assistant verifying a student's exam paper upload.
+Your goal is to find the score on the paper, even if it is handwritten, small, or in a corner.
+
+Please analyze the image CAREFULLY and return a JSON object with these fields:
+- "detected_exam_name": string (name of exam found on paper, or null)
+- "detected_score": number (final score found on paper, or null)
+- "is_clear": boolean (is the image clear and legible?)
+- "is_complete": boolean (does it look like a full exam paper?)
+- "confidence": number (0-100, how confident are you that this is the correct exam with the claimed score?)
+- "reason": string (explanation of your decision)
+
+Instructions:
+1. Look for the score EVERYWHERE on the page (top corners, bottom, margins).
+2. Look for handwritten numbers, red ink, or circled numbers that indicate a total score.
+3. Even if the exam name is slightly different (e.g. abbreviation), if it looks correct, accept it.
+4. If the score is not clearly labeled "Total", infer it from the largest circled number or the sum of marks.
+
+Rules for high confidence (>75):
+1. Image must be relatively clear.
+2. You found a score that matches the Student Claimed Score.
+3. The document looks like the correct exam."""
+
+        # 2. User Message (Dynamic Context)
+        user_content = f"""Expected Exam Name: "{exam.name}"
+Student Claimed Score: {score_claim}
+
+Please verify if the image matches these details."""
         
         # Use a model that supports vision
-        # Using 1.5-flash for reliability as 'gemini-2.5-flash-lite-preview-02-05' is not a standard public model name.
-        model = genai.GenerativeModel('gemini-2.5-flash-lite') 
+        # Using gemini-2.5-flash as requested, WITH system instructions via types.GenerateContentConfig
         
-        response = model.generate_content([prompt, img])
+        # Pass dictionary with mime_type and data directly
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=user_content),
+                        types.Part.from_bytes(data=content, mime_type=mime_type)
+                    ]
+                )
+            ],
+            config=types.GenerateContentConfig(
+                system_instruction=sys_instruct
+            )
+        )
         text_response = response.text
         
         # Clean response to get JSON
