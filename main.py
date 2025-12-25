@@ -18,7 +18,7 @@ from crud import (
     process_excel_upload, calculate_student_grades, create_user, get_user_by_email, 
     process_student_upload, get_score_matrix, bulk_update_scores, export_db_to_json, 
     import_db_from_json, generate_grades_excel, delete_exam, toggle_exam_submission,
-    create_submission_log, get_student_submission_status, get_submission_logs
+    create_submission_log, get_student_submission_status, get_submission_logs, get_all_exams
 )
 from i18n import TRANSLATIONS
 
@@ -139,8 +139,7 @@ async def admin_dashboard(request: Request, session: Session = Depends(get_sessi
     if not user or user['role'] != 'admin':
         return RedirectResponse("/")
     
-    exams = session.exec(select(ExamType)).all()
-    exams = session.exec(select(ExamType)).all()
+    exams = get_all_exams(session)
     lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("admin.html", {"request": request, "exams": exams, "lang": lang})
 
@@ -160,7 +159,7 @@ async def upload_grades(request: Request, files: List[UploadFile] = File(...), s
             else:
                 total_stats[k] = v
     
-    exams = session.exec(select(ExamType)).all()
+    exams = get_all_exams(session)
     
     return templates.TemplateResponse("admin.html", {
         "request": request, 
@@ -216,7 +215,7 @@ async def update_exams_config(
         raise HTTPException(status_code=403, detail="Unauthorized")
         
     # Reset all to False first
-    all_exams = session.exec(select(ExamType)).all()
+    all_exams = get_all_exams(session)
     for exam in all_exams:
         exam.is_mandatory = False
         session.add(exam)
@@ -271,7 +270,7 @@ async def upload_students(request: Request, file: UploadFile = File(...), sessio
     
     stats = process_student_upload(file.file, session)
     
-    exams = session.exec(select(ExamType)).all()
+    exams = get_all_exams(session)
     
     msg = f"Students Processed: {stats}"
     if "error" in stats:
@@ -307,7 +306,7 @@ async def import_json(request: Request, file: UploadFile = File(...), session: S
     except Exception as e:
         msg = f"Import Failed: {str(e)}"
         
-    exams = session.exec(select(ExamType)).all()
+    exams = get_all_exams(session)
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "exams": exams,
@@ -355,7 +354,7 @@ async def student_dashboard(request: Request, session: Session = Depends(get_ses
     open_submissions = []
     # exams = session.exec(select(ExamType).where(ExamType.is_open_for_submission == True)).all() # type mismatch possible
     # Just select all and filter
-    all_exams = session.exec(select(ExamType)).all()
+    all_exams = get_all_exams(session)
     
     for exam in all_exams:
         if exam.is_open_for_submission:
@@ -364,9 +363,8 @@ async def student_dashboard(request: Request, session: Session = Depends(get_ses
             for detail in report['details']:
                 if detail['exam_name'] == exam.name:
                     # If score is present, we consider it done. 
-                    # OR we check if we have a log. 
-                    # Spec: "Student sees grade not registered".
-                    has_grade = True
+                    if detail['score'] is not None:
+                        has_grade = True
                     break
             
             if not has_grade:

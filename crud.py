@@ -156,41 +156,66 @@ def process_excel_upload(file_obj, session: Session) -> Dict[str, int]:
 def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
     """
     Implements the Top 20 Rule.
+    - Mandatory exams: Must be included. If missing, count as 0.
+    - Optional exams: Only Top N used to fill up to 20 slots.
     """
     user = session.get(User, user_id)
     if not user:
         return {}
         
-    # Fetch all scores with exam info
-    statement = select(Score, ExamType).join(ExamType).where(Score.user_id == user_id)
-    results = session.exec(statement).all()
+    # 1. Fetch All Exams and User's Scores
+    all_exams = get_all_exams(session)
+    scores = session.exec(select(Score).where(Score.user_id == user_id)).all()
+    score_map = {s.exam_type_id: s.score for s in scores}
     
     mandatory_items = []
     optional_items = []
     
     formatted_rows = []
     
-    for score, exam in results:
+    for exam in all_exams:
+        score_val = score_map.get(exam.id) # Float or None
+        
+        # Check submission eligibility
+        can_submit = False
+        if exam.is_open_for_submission and score_val is None:
+             count, status = get_student_submission_status(session, user_id, exam.id)
+             if count < 3 and status != SubmissionStatus.APPROVED:
+                 can_submit = True
+
         item = {
+            "exam_id": exam.id,
             "exam_name": exam.name,
-            "score": score.score,
+            "score": score_val, # For Display (None becomes "-")
             "is_mandatory": exam.is_mandatory,
-            "included": False # Will be updated
+            "included": False,
+            "can_submit": can_submit
         }
         
-        if exam.is_mandatory:
-            mandatory_items.append(item)
-        else:
-            optional_items.append(item)
+        formatted_rows.append(item)
         
-        formatted_rows.append(item) # Keep a reference to these dicts to update 'included'
+        # Calculation Logic
+        # If mandatory: Always included. If None -> 0.0
+        if exam.is_mandatory:
+            calc_val = score_val if score_val is not None else 0.0
+            mandatory_items.append({
+                "score": calc_val,
+                "ref": item # Link back to update 'included'
+            })
+        else:
+            # If optional: Only include if it has a score
+            if score_val is not None:
+                optional_items.append({
+                    "score": score_val,
+                    "ref": item
+                })
         
     # Logic
     # 3. Select ALL Mandatory
     selected_scores = []
-    for item in mandatory_items:
-        item["included"] = True
-        selected_scores.append(item["score"])
+    for m_item in mandatory_items:
+        m_item["ref"]["included"] = True
+        selected_scores.append(m_item["score"])
         
     # 4. Calculate remaining slots
     slots_needed = 20 - len(mandatory_items)
@@ -201,19 +226,15 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
         optional_items.sort(key=lambda x: x["score"], reverse=True)
         top_optionals = optional_items[:slots_needed]
         
-        for item in top_optionals:
-            item["included"] = True
-            selected_scores.append(item["score"])
+        for o_item in top_optionals:
+            o_item["ref"]["included"] = True
+            selected_scores.append(o_item["score"])
             
     # Calculate Average
     effective_count = len(selected_scores)
     total_score = sum(selected_scores)
     
-    # Requirement: If fewer than 20 scores, fill with 0 (divide by 20).
-    # If more than 20 (e.g. 21 mandatory exams), then divide by actual count.
-    # Usually Top 20 implies count is exactly 20 unless we have > 20 mandatory?
-    # Spec "choose highest 20, but if insufficient 20, fill 0 calculation" -> implies divisor is max(20, count).
-    
+    # Divisor is max(20, effective_count) to handle cases where we have > 20 mandatory
     divisor = max(20, effective_count)
     
     if divisor == 0:
@@ -225,7 +246,7 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
         "user_name": user.name,
         "seat_number": user.seat_number,
         "average": round(average, 2),
-        "exam_count": len(selected_scores), # Effective count (might be less than 20 if total exams < 20)
+        "exam_count": len(selected_scores),
         "details": formatted_rows
     }
 
@@ -307,7 +328,7 @@ def get_score_matrix(session: Session):
             return 999999
             
     students.sort(key=lambda u: try_int(u.seat_number))
-    exams = session.exec(select(ExamType).order_by(ExamType.id)).all()
+    exams = get_all_exams(session)
     scores = session.exec(select(Score)).all()
     
     score_map = {}
@@ -444,8 +465,8 @@ def generate_grades_excel(session: Session):
     students = session.exec(select(User).where(User.role == UserRole.STUDENT)).all()
     students.sort(key=lambda u: int(u.seat_number) if u.seat_number and u.seat_number.isdigit() else 999999)
     
-    # Get all exams for columns headers (sorted by ID)
-    all_exams = session.exec(select(ExamType).order_by(ExamType.id)).all()
+    # Get all exams for columns headers (sorted by Type/Name)
+    all_exams = get_all_exams(session)
     
     data = []
     
@@ -488,6 +509,14 @@ def generate_grades_excel(session: Session):
         
     output.seek(0)
     return output
+
+def get_all_exams(session: Session) -> List[ExamType]:
+    """
+    Returns all exams sorted by:
+    1. Type (Mandatory first -> is_mandatory=True)
+    2. Name (Alphabetical)
+    """
+    return session.exec(select(ExamType).order_by(ExamType.is_mandatory.desc(), ExamType.name.asc())).all()
 
 def get_submission_logs(session: Session, user_id: Optional[int] = None, limit: int = 100):
     """
