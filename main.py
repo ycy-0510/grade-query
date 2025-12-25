@@ -512,7 +512,7 @@ Please verify if the image matches these details."""
         
         # Pass dictionary with mime_type and data directly
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
             contents=[
                 types.Content(
                     role="user",
