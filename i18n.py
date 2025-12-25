@@ -104,7 +104,16 @@ TRANSLATIONS = {
         "save_changes_btn": "Save Changes",
         "seat_header": "Seat",
         "name_header": "Name",
-        "mandatory_badge": "M"
+        "mandatory_badge": "M",
+        "submission_logs": "Submission Logs",
+        "log_time": "Time",
+        "log_student": "Student",
+        "log_exam": "Exam",
+        "log_status": "Status",
+        "log_reason": "Reason",
+        "log_attempts": "Attempts",
+        "view_logs": "View Logs",
+        "my_logs": "My Logs"
     },
     "zh": {
         "title": "成績查詢系統",
@@ -135,7 +144,7 @@ TRANSLATIONS = {
         "ignored": "未採計",
         "action_required": "需要行動",
         "rejected": "已駁回",
-        "pending": "審核中",
+        "pending": "待處理",
         "attempts_remaining": "您還有 <span class=\"font-bold text-indigo-600\">{}</span> 次提交驗證機會。",
         "submit_grade": "提交成績",
         "submission_closed": "提交已關閉",
@@ -210,6 +219,15 @@ TRANSLATIONS = {
         "save_changes_btn": "儲存變更",
         "seat_header": "座號",
         "name_header": "姓名",
-        "mandatory_badge": "必"
+        "mandatory_badge": "必",
+        "submission_logs": "提交紀錄",
+        "log_time": "時間",
+        "log_student": "學生",
+        "log_exam": "考試",
+        "log_status": "狀態",
+        "log_reason": "原因",
+        "log_attempts": "嘗試次數",
+        "view_logs": "查看紀錄",
+        "my_logs": "我的紀錄"
     }
 }

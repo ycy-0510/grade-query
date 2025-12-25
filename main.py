@@ -18,7 +18,7 @@ from crud import (
     process_excel_upload, calculate_student_grades, create_user, get_user_by_email, 
     process_student_upload, get_score_matrix, bulk_update_scores, export_db_to_json, 
     import_db_from_json, generate_grades_excel, delete_exam, toggle_exam_submission,
-    create_submission_log, get_student_submission_status
+    create_submission_log, get_student_submission_status, get_submission_logs
 )
 from i18n import TRANSLATIONS
 
@@ -328,6 +328,20 @@ async def export_grades_excel(request: Request, session: Session = Depends(get_s
     }
     return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
+@app.get("/admin/logs", response_class=HTMLResponse)
+async def admin_logs(request: Request, session: Session = Depends(get_session)):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        return RedirectResponse("/")
+        
+    logs = get_submission_logs(session)
+    
+    return templates.TemplateResponse("admin_logs.html", {
+        "request": request,
+        "logs": logs,
+        "lang": request.cookies.get("lang", "en")
+    })
+
 # --- Student Routes ---
 @app.get("/student", response_class=HTMLResponse)
 async def student_dashboard(request: Request, session: Session = Depends(get_session)):
@@ -372,6 +386,20 @@ async def student_dashboard(request: Request, session: Session = Depends(get_ses
         "report": report,
         "open_submissions": open_submissions,
         "lang": lang
+    })
+
+@app.get("/student/logs", response_class=HTMLResponse)
+async def student_logs(request: Request, session: Session = Depends(get_session)):
+    user = request.session.get('user')
+    if not user or user['role'] != 'student':
+        return RedirectResponse("/")
+        
+    logs = get_submission_logs(session, user_id=user['id'])
+    
+    return templates.TemplateResponse("student_logs.html", {
+        "request": request,
+        "logs": logs,
+        "lang": request.cookies.get("lang", "en")
     })
 
 @app.get("/student/submit/{exam_id}", response_class=HTMLResponse)

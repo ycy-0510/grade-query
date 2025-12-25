@@ -10,10 +10,16 @@
                 class="font-semibold text-slate-800">{{ report.user_name
                 }}</span></p>
     </div>
-    <div
-        class="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600 font-medium whitespace-nowrap">
-        {{ translations[lang]['seat_number'] }}<span class="text-slate-900 font-bold ml-1">{{ report.seat_number
-            }}</span>
+    <div class="flex gap-2">
+        <a href="/student/logs"
+            class="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-indigo-600 font-medium hover:bg-indigo-50 transition-colors">
+            {{ translations[lang]['my_logs'] }}
+        </a>
+        <div
+            class="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600 font-medium whitespace-nowrap">
+            {{ translations[lang]['seat_number'] }}<span class="text-slate-900 font-bold ml-1">{{ report.seat_number
+                }}</span>
+        </div>
     </div>
 </div>
 
@@ -28,7 +34,8 @@
             class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2">
             {{ translations[lang]['submit_scores'] }}
             {% if open_submissions %}
-            <span class="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold">{{ open_submissions|length
+            <span class="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold">{{
+                open_submissions|length
                 }}</span>
             {% endif %}
         </button>
@@ -79,10 +86,13 @@
                     <table class="w-full text-left">
                         <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
                             <tr>
-                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['exam_name'] }}
+                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['exam_name']
+                                    }}
                                 </th>
-                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['score'] }}</th>
-                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['type'] }}</th>
+                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['score'] }}
+                                </th>
+                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['type'] }}
+                                </th>
                                 <th class="px-6 py-3 border-b border-slate-100 text-right">{{
                                     translations[lang]['status'] }}</th>
                             </tr>

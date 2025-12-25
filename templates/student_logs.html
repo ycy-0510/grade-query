@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{{ translations[lang]['my_logs'] }}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">{{ translations[lang]['my_logs'] }}</h2>
+        <p class="text-slate-500 text-sm">{{ translations[lang]['student_portal'] }} / {{ translations[lang]['my_logs']
+            }}</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <a href="/student"
+            class="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg shadow-sm transition-all text-sm">
+            {{ translations[lang]['back_dashboard'] }}
+        </a>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
+                <tr>
+                    <th class="px-6 py-3 border-b border-slate-200">{{ translations[lang]['log_time'] }}</th>
+                    <th class="px-6 py-3 border-b border-slate-200">{{ translations[lang]['log_exam'] }}</th>
+                    <th class="px-6 py-3 border-b border-slate-200">{{ translations[lang]['log_attempts'] }}</th>
+                    <th class="px-6 py-3 border-b border-slate-200">{{ translations[lang]['log_status'] }}</th>
+                    <th class="px-6 py-3 border-b border-slate-200">{{ translations[lang]['log_reason'] }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for log in logs %}
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-3 text-sm text-slate-500 whitespace-nowrap">
+                        {{ log.time.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td class="px-6 py-3 text-sm font-medium text-slate-900">
+                        {{ log.exam_name }}
+                    </td>
+                    <td class="px-6 py-3 text-sm text-slate-600">
+                        {{ log.attempt_count }}
+                    </td>
+                    <td class="px-6 py-3 text-sm">
+                        {% if log.status == 'approved' %}
+                        <span
+                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">
+                            {{ log.status }}
+                        </span>
+                        {% elif log.status == 'rejected' %}
+                        <span
+                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
+                            {{ log.status }}
+                        </span>
+                        {% else %}
+                        <span
+                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700">
+                            {{ log.status }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-sm text-slate-600">
+                        <div class="max-w-xs cursor-pointer" onclick="toggleReason(this)">
+                            <div class="truncate text-ellipsis overflow-hidden whitespace-nowrap"
+                                title="{{ log.reason }}">
+                                {{ log.reason }}
+                            </div>
+                            <div
+                                class="hidden whitespace-normal break-words text-slate-800 mt-1 p-2 bg-slate-50 rounded border border-slate-100 text-xs">
+                                {{ log.reason }}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function toggleReason(element) {
+        const shortView = element.querySelector('.truncate');
+        const longView = element.querySelector('.hidden, .block');
+
+        if (longView.classList.contains('hidden')) {
+            longView.classList.remove('hidden');
+            longView.classList.add('block');
+            shortView.classList.add('hidden');
+        } else {
+            longView.classList.add('hidden');
+            longView.classList.remove('block');
+            shortView.classList.remove('hidden');
+        }
+    }
+</script>
+{% endblock %}
