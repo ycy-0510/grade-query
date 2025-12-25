@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Submit Grade - {{ exam.name }}{% endblock %}
+{% block title %}{{ translations[lang]['submit_title'].format(exam.name) }}{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
@@ -11,23 +11,21 @@
                     d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
                     clip-rule="evenodd" />
             </svg>
-            Back to Dashboard
+            {{ translations[lang]['back_dashboard'] }}
         </a>
     </div>
 
     <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
         <div class="bg-indigo-600 px-8 py-6 text-white">
-            <h2 class="text-2xl font-bold">Grade Submission</h2>
-            <p class="text-indigo-200 mt-1">Exam: {{ exam.name }}</p>
+            <h2 class="text-2xl font-bold">{{ translations[lang]['grade_submission'] }}</h2>
+            <p class="text-indigo-200 mt-1">{{ translations[lang]['exam'] }}: {{ exam.name }}</p>
         </div>
 
         <div class="p-8">
             <div class="mb-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                <h4 class="font-bold text-blue-800 text-sm mb-1">AI Verification Active</h4>
+                <h4 class="font-bold text-blue-800 text-sm mb-1">{{ translations[lang]['ai_verification'] }}</h4>
                 <p class="text-sm text-blue-700">
-                    Your upload will be verified by artificial intelligence.
-                    Ensure your photo is <strong>clear, bright, and shows the full exam paper</strong> with the score
-                    visible.
+                    {{ translations[lang]['ai_verification_desc'] | safe }}
                 </p>
                 <p class="text-xs text-blue-600 mt-2 font-semibold">Attempts Remaining: <span
                         id="attemptsCount"></span>{{ attempts_left }}</span></p>
@@ -38,15 +36,18 @@
 
                 <!-- Score Claim -->
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">Claimed Score</label>
-                    <input type="number" step="0.5" name="score_claim" required placeholder="e.g. 85.5"
+                    <label class="block text-sm font-bold text-slate-700 mb-2">{{ translations[lang]['claimed_score']
+                        }}</label>
+                    <input type="number" step="0.5" name="score_claim" required
+                        placeholder="{{ translations[lang]['claimed_score_placeholder'] }}"
                         class="block w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono text-lg">
-                    <p class="text-xs text-slate-500 mt-2">Enter the score exactly as written on your paper.</p>
+                    <p class="text-xs text-slate-500 mt-2">{{ translations[lang]['claimed_score_help'] }}</p>
                 </div>
 
                 <!-- File Upload -->
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">Exam Photo</label>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">{{ translations[lang]['exam_photo']
+                        }}</label>
                     <div class="relative group">
                         <input type="file" name="image" accept="image/*" required
                             class="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all border border-dashed border-slate-300 rounded-xl cursor-pointer bg-slate-50 py-8 text-center">
@@ -74,7 +75,7 @@
                 <!-- Submit -->
                 <button type="submit" id="submitBtn"
                     class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                    <span id="btnText">Submit for Verification</span>
+                    <span id="btnText">{{ translations[lang]['verify_btn'] }}</span>
                     <svg id="btnSpinner" class="animate-spin h-5 w-5 text-white hidden"
                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -101,7 +102,7 @@
                     // UI Loading State
                     btn.disabled = true;
                     btn.classList.add('opacity-75', 'cursor-wait');
-                    btnText.innerText = 'Analyzing Image (this may take 10s)...';
+                    btnText.innerText = "{{ translations[lang]['analyzing'] }}";
                     btnSpinner.classList.remove('hidden');
 
                     const formData = new FormData(this);
@@ -123,7 +124,7 @@
                                 btn.disabled = true;
                                 btn.classList.add('bg-slate-400', 'cursor-not-allowed');
                                 btn.classList.remove('hover:bg-indigo-700', 'active:scale-[0.98]', 'bg-indigo-600');
-                                btnText.innerText = 'No Attempts Remaining';
+                                btnText.innerText = "{{ translations[lang]['no_attempts'] }}";
                                 btnSpinner.classList.add('hidden');
                                 // Don't allow retry in finally block
                                 return;
@@ -141,10 +142,10 @@
                         showResult(false, { error: "Network Error", detail: { message: err.message } });
                     } finally {
                         // Reset UI if we have attempts left
-                        if (!btn.innerText.includes('No Attempts')) {
+                        if (!btnText.innerText.includes('{{ translations[lang]["no_attempts"] }}')) {
                             btn.disabled = false;
                             btn.classList.remove('opacity-75', 'cursor-wait');
-                            btnText.innerText = 'Submit for Verification';
+                            btnText.innerText = "{{ translations[lang]['verify_btn'] }}";
                             btnSpinner.classList.add('hidden');
 
                             // Reset Turnstile if needed
@@ -167,18 +168,18 @@
                     if (success) {
                         // Ideally we redirect, but just in case
                         card.classList.add('bg-green-50', 'border-green-200', 'text-green-900');
-                        title.innerText = "Verification Successful";
-                        message.innerText = "Your score has been recorded.";
+                        title.innerText = "{{ translations[lang]['verification_success'] }}";
+                        message.innerText = "{{ translations[lang]['score_recorded'] }}";
                     } else {
                         card.classList.add('bg-red-50', 'border-red-200', 'text-red-900');
-                        title.innerText = data.error || "Verification Failed";
+                        title.innerText = data.error || "{{ translations[lang]['verification_failed'] }}";
 
                         if (data.detail && data.detail.message) {
                             message.innerText = data.detail.message;
-                            details.innerHTML = `<strong>AI Confidence:</strong> ${data.detail.confidence || 0}%<br><strong>Reason:</strong> ${data.detail.reason || 'N/A'}`;
+                            details.innerHTML = `<strong>{{ translations[lang]['ai_confidence'] }}:</strong> ${data.detail.confidence || 0}%<br><strong>{{ translations[lang]['reason'] }}:</strong> ${data.detail.reason || 'N/A'}`;
                             details.classList.remove('hidden');
                         } else {
-                            message.innerText = data.error || "Unknown error occurred.";
+                            message.innerText = data.error || "{{ translations[lang]['unknown_error'] }}";
                             details.classList.add('hidden');
                         }
 

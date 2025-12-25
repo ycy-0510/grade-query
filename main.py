@@ -20,12 +20,14 @@ from crud import (
     import_db_from_json, generate_grades_excel, delete_exam, toggle_exam_submission,
     create_submission_log, get_student_submission_status
 )
+from i18n import TRANSLATIONS
 
 app = FastAPI()
 SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe_dev_secret")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 templates = Jinja2Templates(directory="templates")
+templates.env.globals['translations'] = TRANSLATIONS
 
 # --- AI Configuration ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -52,6 +54,14 @@ async def verify_turnstile(token: str, ip: str) -> bool:
         response = await client.post(url, data=data)
         result = response.json()
         return result.get("success", False)
+
+@app.get("/set-language/{lang}")
+async def set_language(lang: str, request: Request):
+    if lang not in ["en", "zh"]:
+        lang = "en"
+    response = RedirectResponse(url=request.headers.get("referer", "/"))
+    response.set_cookie(key="lang", value=lang, max_age=31536000) # 1 year
+    return response
 
 # --- Auth Routes ---
 @app.get("/login/google")
@@ -118,7 +128,9 @@ async def home(request: Request):
             return RedirectResponse(url='/admin')
         else:
             return RedirectResponse(url='/student')
-    return templates.TemplateResponse("login.html", {"request": request})
+            return RedirectResponse(url='/student')
+    lang = request.cookies.get("lang", "en")
+    return templates.TemplateResponse("login.html", {"request": request, "lang": lang})
 
 # --- Admin Routes ---
 @app.get("/admin", response_class=HTMLResponse)
@@ -128,7 +140,9 @@ async def admin_dashboard(request: Request, session: Session = Depends(get_sessi
         return RedirectResponse("/")
     
     exams = session.exec(select(ExamType)).all()
-    return templates.TemplateResponse("admin.html", {"request": request, "exams": exams})
+    exams = session.exec(select(ExamType)).all()
+    lang = request.cookies.get("lang", "en")
+    return templates.TemplateResponse("admin.html", {"request": request, "exams": exams, "lang": lang})
 
 @app.post("/admin/upload-grades")
 async def upload_grades(request: Request, files: List[UploadFile] = File(...), session: Session = Depends(get_session)):
@@ -151,7 +165,8 @@ async def upload_grades(request: Request, files: List[UploadFile] = File(...), s
     return templates.TemplateResponse("admin.html", {
         "request": request, 
         "exams": exams, 
-        "error": f"Processed {len(files)} files! Total Stats: {total_stats}" 
+        "error": f"Processed {len(files)} files! Total Stats: {total_stats}",
+        "lang": request.cookies.get("lang", "en")
     }) 
 
 @app.post("/admin/exams/create")
@@ -228,7 +243,8 @@ async def view_scores(request: Request, session: Session = Depends(get_session))
         "request": request,
         "students": students,
         "exams": exams,
-        "score_map": score_map
+        "score_map": score_map,
+        "lang": request.cookies.get("lang", "en")
     })
 
 @app.post("/admin/scores/update")
@@ -264,7 +280,8 @@ async def upload_students(request: Request, file: UploadFile = File(...), sessio
     return templates.TemplateResponse("admin.html", {
         "request": request, 
         "exams": exams, 
-        "error": msg 
+        "error": msg,
+        "lang": request.cookies.get("lang", "en")
     })
 
 @app.get("/admin/export-json")
@@ -294,7 +311,8 @@ async def import_json(request: Request, file: UploadFile = File(...), session: S
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "exams": exams,
-        "error": msg
+        "error": msg,
+        "lang": request.cookies.get("lang", "en")
     })
 
 @app.get("/admin/export-grades-excel")
@@ -348,10 +366,12 @@ async def student_dashboard(request: Request, session: Session = Depends(get_ses
                     "can_submit": count < 3 and status != SubmissionStatus.APPROVED
                 })
 
+    lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("student.html", {
         "request": request, 
         "report": report,
-        "open_submissions": open_submissions
+        "open_submissions": open_submissions,
+        "lang": lang
     })
 
 @app.get("/student/submit/{exam_id}", response_class=HTMLResponse)
@@ -370,11 +390,13 @@ async def student_submit_page(request: Request, exam_id: int, session: Session =
         # Already done or failed
         return RedirectResponse("/student")
         
+    lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("submission.html", {
         "request": request,
         "exam": exam,
         "turnstile_site_key": os.environ.get("TURNSTILE_SITE_KEY"),
-        "attempts_left": 3 - count
+        "attempts_left": 3 - count,
+        "lang": lang
     })
 
 @app.post("/student/submit/{exam_id}")

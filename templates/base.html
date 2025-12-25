@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Grade Query System{% endblock %}</title>
+    <title>{% block title %}{{ translations[lang]['title'] }}{% endblock %}</title>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS (Play CDN for dev) -->
@@ -69,7 +69,7 @@
                     </div>
                     <a href="/"
                         class="text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-                        Grade System
+                        {{ translations[lang]['brand'] }}
                     </a>
                 </div>
 
@@ -78,14 +78,18 @@
                     <div
                         class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200/60 shadow-sm">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span class="text-sm font-medium text-slate-600">Hello, {{
+                        <span class="text-sm font-medium text-slate-600">{{ translations[lang]['hello'] }}, {{
                             request.session.get('user').get('name') }}</span>
                     </div>
                     <a href="/logout"
                         class="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow-md transition-all hover:shadow-lg active:scale-95 duration-200">
-                        Logout
+                        {{ translations[lang]['logout'] }}
                     </a>
                     {% endif %}
+                    <a href="/set-language/{% if lang == 'en' %}zh{% else %}en{% endif %}"
+                        class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200">
+                        {{ translations[lang]['switch_lang'] }}
+                    </a>
                 </div>
             </div>
         </div>
@@ -110,7 +114,7 @@
 
     <!-- Footer -->
     <footer class="mt-auto py-6 text-center text-slate-400 text-sm">
-        <p>&copy; 2025 YCYDev. All rights reserved.</p>
+        <p>&copy; 2025 YCYDev. {{ translations[lang]['footer_rights'] }}</p>
     </footer>
 
 </body>

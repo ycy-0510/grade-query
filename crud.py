@@ -358,16 +358,18 @@ def bulk_update_scores(form_data: dict, session: Session):
 
 def export_db_to_json(session: Session) -> Dict[str, Any]:
     """
-    Exports all Users, ExamTypes, and Scores to a dictionary.
+    Exports all Users, ExamTypes, Scores, and SubmissionLogs to a dictionary.
     """
     users = session.exec(select(User)).all()
     exams = session.exec(select(ExamType)).all()
     scores = session.exec(select(Score)).all()
+    logs = session.exec(select(SubmissionLog)).all()
     
     data = {
         "users": [u.model_dump() for u in users],
         "exams": [e.model_dump() for e in exams],
-        "scores": [s.model_dump() for s in scores]
+        "scores": [s.model_dump() for s in scores],
+        "logs": [l.model_dump() for l in logs]
     }
     return data
 
@@ -375,12 +377,13 @@ def import_db_from_json(data: Dict[str, Any], session: Session) -> Dict[str, Any
     """
     Imports data from dictionary. WARNING: Deletes existing data.
     """
-    stats = {"users": 0, "exams": 0, "scores": 0, "errors": 0}
+    stats = {"users": 0, "exams": 0, "scores": 0, "logs": 0, "errors": 0}
     
     try:
         # 1. Clear existing data
-        # Order matters due to foreign keys: Score -> (User, ExamType)
-        session.exec(delete(Score))
+        # Order matters due to foreign keys: Log/Score -> (User, ExamType)
+        session.exec(delete(SubmissionLog)) # SubmissionLog depends on User/Exam
+        session.exec(delete(Score))         # Score depends on User/Exam
         session.exec(delete(User))
         session.exec(delete(ExamType))
         session.commit()
@@ -401,7 +404,7 @@ def import_db_from_json(data: Dict[str, Any], session: Session) -> Dict[str, Any
             session.add(exam)
             stats["exams"] += 1
             
-        # Commit users and exams first so IDs exist for scores
+        # Commit users and exams first so IDs exist for scores/logs
         # We need to ensure we insert with explicit IDs. 
         # SQLModel/SQLAlchemy usually allows inserting explicit IDs.
         session.commit()
@@ -413,6 +416,13 @@ def import_db_from_json(data: Dict[str, Any], session: Session) -> Dict[str, Any
             session.add(score)
             stats["scores"] += 1
             
+        # 5. Import Logs
+        logs_data = data.get("logs", [])
+        for l_data in logs_data:
+            log = SubmissionLog.model_validate(l_data)
+            session.add(log)
+            stats["logs"] += 1
+
         session.commit()
         
     except Exception as e:

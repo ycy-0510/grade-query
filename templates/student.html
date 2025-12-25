@@ -1,17 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}My Grades{% endblock %}
+{% block title %}{{ translations[lang]['my_grades'] }}{% endblock %}
 
 {% block content %}
 <div class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
     <div>
-        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Student Report</h2>
-        <p class="text-slate-500 mt-1 text-lg">Hello, <span class="font-semibold text-slate-800">{{ report.user_name
+        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">{{ translations[lang]['student_report'] }}</h2>
+        <p class="text-slate-500 mt-1 text-lg">{{ translations[lang]['hello'] }}, <span
+                class="font-semibold text-slate-800">{{ report.user_name
                 }}</span></p>
     </div>
     <div
         class="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600 font-medium whitespace-nowrap">
-        Seat #<span class="text-slate-900 font-bold ml-1">{{ report.seat_number }}</span>
+        {{ translations[lang]['seat_number'] }}<span class="text-slate-900 font-bold ml-1">{{ report.seat_number
+            }}</span>
     </div>
 </div>
 
@@ -20,11 +22,11 @@
     <nav class="-mb-px flex space-x-8" aria-label="Tabs">
         <button onclick="switchTab('grades')" id="tab-btn-grades"
             class="border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-            My Grades
+            {{ translations[lang]['my_grades'] }}
         </button>
         <button onclick="switchTab('submit')" id="tab-btn-submit"
             class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2">
-            Submit Scores
+            {{ translations[lang]['submit_scores'] }}
             {% if open_submissions %}
             <span class="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold">{{ open_submissions|length
                 }}</span>
@@ -49,7 +51,7 @@
                 </div>
 
                 <div class="relative z-10">
-                    <p class="text-indigo-100 font-medium mb-1">Top 20 Average</p>
+                    <p class="text-indigo-100 font-medium mb-1">{{ translations[lang]['top_average'] }}</p>
                     <h1 class="text-5xl font-bold mb-4 tracking-tight">{{ report.average }}</h1>
                     <div
                         class="flex items-center gap-2 text-sm text-indigo-100 bg-white/20 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
@@ -58,7 +60,7 @@
                                 d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                 clip-rule="evenodd" />
                         </svg>
-                        <span>Based on {{ report.exam_count }} exams</span>
+                        <span>{{ translations[lang]['based_on_exams'].format(report.exam_count) }}</span>
                     </div>
                 </div>
             </div>
@@ -68,18 +70,21 @@
         <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h4 class="font-bold text-slate-800">Detail Scores</h4>
-                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Top Results Included</div>
+                    <h4 class="font-bold text-slate-800">{{ translations[lang]['detail_scores'] }}</h4>
+                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">{{
+                        translations[lang]['top_results_included'] }}</div>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
                             <tr>
-                                <th class="px-6 py-3 border-b border-slate-100">Exam Name</th>
-                                <th class="px-6 py-3 border-b border-slate-100">Score</th>
-                                <th class="px-6 py-3 border-b border-slate-100">Type</th>
-                                <th class="px-6 py-3 border-b border-slate-100 text-right">Status</th>
+                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['exam_name'] }}
+                                </th>
+                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['score'] }}</th>
+                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['type'] }}</th>
+                                <th class="px-6 py-3 border-b border-slate-100 text-right">{{
+                                    translations[lang]['status'] }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -95,12 +100,12 @@
                                     {% if item.is_mandatory %}
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
-                                        Mandatory
+                                        {{ translations[lang]['mandatory'] }}
                                     </span>
                                     {% else %}
                                     <span
                                         class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">
-                                        Optional
+                                        {{ translations[lang]['optional'] }}
                                     </span>
                                     {% endif %}
                                 </td>
@@ -114,10 +119,11 @@
                                                 d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                                 clip-rule="evenodd" />
                                         </svg>
-                                        Included
+                                        {{ translations[lang]['included'] }}
                                     </span>
                                     {% else %}
-                                    <span class="text-slate-400 italic font-medium">Ignored</span>
+                                    <span class="text-slate-400 italic font-medium">{{ translations[lang]['ignored']
+                                        }}</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -135,7 +141,7 @@
     {% if open_submissions %}
     <div>
         <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            Action Required
+            {{ translations[lang]['action_required'] }}
             <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -144,24 +150,26 @@
                 <div class="flex justify-between items-start mb-4">
                     <h4 class="font-bold text-slate-800 text-lg">{{ exam.name }}</h4>
                     {% if exam.status == 'rejected' %}
-                    <span class="text-xs font-bold bg-red-50 text-red-600 px-2 py-1 rounded-lg">Rejected</span>
+                    <span class="text-xs font-bold bg-red-50 text-red-600 px-2 py-1 rounded-lg">{{
+                        translations[lang]['rejected'] }}</span>
                     {% elif exam.status == 'pending' %}
-                    <span class="text-xs font-bold bg-yellow-50 text-yellow-600 px-2 py-1 rounded-lg">Pending</span>
+                    <span class="text-xs font-bold bg-yellow-50 text-yellow-600 px-2 py-1 rounded-lg">{{
+                        translations[lang]['pending'] }}</span>
                     {% endif %}
                 </div>
 
-                <p class="text-sm text-slate-500 mb-6">You have <span class="font-bold text-indigo-600">{{ 3 -
-                        exam.attempt_count }}</span> attempts remaining to submit your score for verification.</p>
+                <p class="text-sm text-slate-500 mb-6">{{ translations[lang]['attempts_remaining'].format(3 -
+                    exam.attempt_count) | safe }}</p>
 
                 {% if exam.can_submit %}
                 <a href="/student/submit/{{ exam.id }}"
                     class="block w-full text-center py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm shadow-indigo-200">
-                    Submit Grade
+                    {{ translations[lang]['submit_grade'] }}
                 </a>
                 {% else %}
                 <button disabled
                     class="w-full py-2.5 bg-slate-100 text-slate-400 font-medium rounded-lg cursor-not-allowed">
-                    Submission Closed
+                    {{ translations[lang]['submission_closed'] }}
                 </button>
                 {% endif %}
             </div>
@@ -175,7 +183,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p class="text-slate-500 font-medium">All caught up! No open exams to submit.</p>
+        <p class="text-slate-500 font-medium">{{ translations[lang]['all_caught_up'] }}</p>
     </div>
     {% endif %}
 </div>
