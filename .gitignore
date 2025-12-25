@@ -1,0 +1,6 @@
+/catch
+.env
+__pycache__
+.vscode
+.venv
+/mysql_data

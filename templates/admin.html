@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h2>
+        <p class="text-slate-500 mt-1">Manage students, grades, and system configurations.</p>
+    </div>
+    <a href="/admin/scores"
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+            <path fill-rule="evenodd"
+                d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                clip-rule="evenodd" />
+        </svg>
+        View & Edit Scores
+    </a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="space-y-8">
+        <!-- 1. Import Students -->
+        <div
+            class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-primary-500" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </div>
+
+            <h4 class="flex items-center gap-3 text-lg font-bold text-slate-800 mb-4 relative z-10">
+                <span
+                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-700 text-sm font-bold">1</span>
+                Import Students
+            </h4>
+
+            <form action="/admin/upload-students" method="post" enctype="multipart/form-data" class="relative z-10">
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Student List
+                        (.xlsx)</label>
+                    <input
+                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-all border border-slate-200 rounded-lg cursor-pointer bg-slate-50 focus:outline-none"
+                        type="file" name="file" required>
+                    <p class="mt-2 text-xs text-slate-400">Format: Seat Number, Name, Email</p>
+                </div>
+                <button type="submit"
+                    class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl shadow-sm hover:shadow transition-all active:scale-[0.98]">
+                    Upload Students
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. Upload Grades -->
+        <div
+            class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-indigo-500" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+
+            <h4 class="flex items-center gap-3 text-lg font-bold text-slate-800 mb-4 relative z-10">
+                <span
+                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 text-sm font-bold">2</span>
+                Upload Grades
+            </h4>
+
+            <form action="/admin/upload-grades" method="post" enctype="multipart/form-data" class="relative z-10">
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Excel Files
+                        (.xlsx)</label>
+                    <input
+                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all border border-slate-200 rounded-lg cursor-pointer bg-slate-50 focus:outline-none"
+                        type="file" name="files" multiple required>
+                    <p class="mt-2 text-xs text-slate-400">Column 1: Seat Number, Column 2+: Exam Names</p>
+                </div>
+                <button type="submit"
+                    class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
+                    Upload & Process
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="space-y-8">
+        <!-- Exam Configs -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+            <h4 class="text-lg font-bold text-slate-800 mb-2">Exam Configurations</h4>
+            <p class="text-sm text-slate-500 mb-6 border-l-4 border-indigo-500 pl-3 bg-indigo-50/50 py-2 rounded-r-lg">
+                Marking an exam as <span class="font-bold text-indigo-700">Mandatory</span> ensures it is included in
+                the top 20 calculation.
+            </p>
+
+            <form action="/admin/update-exams" method="post">
+                <div class="overflow-hidden rounded-xl border border-slate-200 mb-4">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
+                            <tr>
+                                <th class="px-5 py-3 border-b border-slate-200">Exam Name</th>
+                                <th class="px-5 py-3 border-b border-slate-200 text-right">Mandatory</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for exam in exams %}
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="px-5 py-3 text-sm font-medium text-slate-700">{{ exam.name }}</td>
+                                <td class="px-5 py-3 text-right">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" name="mandatory_exams" value="{{ exam.id }}"
+                                            class="sr-only peer" {% if exam.is_mandatory %}checked{% endif %}>
+                                        <div
+                                            class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                                        </div>
+                                    </label>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not exams %}
+                            <tr>
+                                <td colspan="2" class="px-5 py-4 text-center text-sm text-slate-400 italic">No exams
+                                    configured yet.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit"
+                    class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md transition-all active:scale-[0.98]">
+                    Save Configurations
+                </button>
+            </form>
+        </div>
+
+        <!-- Database Management -->
+        <div class="bg-white rounded-2xl shadow-sm border border-red-100 p-0 overflow-hidden">
+            <div class="bg-red-50/50 p-4 border-b border-red-100 flex items-center gap-3">
+                <div class="p-2 bg-red-100 text-red-600 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h4 class="font-bold text-red-800">Database Management</h4>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Export -->
+                <div>
+                    <h6 class="text-sm font-bold text-slate-800 mb-2">Export Data</h6>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="/admin/export-json"
+                            class="flex flex-col items-center justify-center p-3 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl transition-all text-center">
+                            <span class="text-xs font-bold text-slate-700">Backup (JSON)</span>
+                            <span class="text-[10px] text-slate-400">Full DB Dump</span>
+                        </a>
+                        <a href="/admin/export-grades-excel"
+                            class="flex flex-col items-center justify-center p-3 border border-green-200 bg-green-50/30 hover:bg-green-50 hover:border-green-300 rounded-xl transition-all text-center">
+                            <span class="text-xs font-bold text-green-700">Grades (Excel)</span>
+                            <span class="text-[10px] text-green-600/70">XLSX Report</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="h-px bg-slate-100"></div>
+
+                <!-- Import -->
+                <div>
+                    <h6 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        Import Data
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600">DESTRUCTIVE</span>
+                    </h6>
+                    <form action="/admin/import-json" method="post" enctype="multipart/form-data">
+                        <div class="flex gap-2">
+                            <input
+                                class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 border border-slate-200 rounded-lg cursor-pointer bg-slate-50"
+                                type="file" name="file" accept=".json" required>
+                            <button type="submit"
+                                onclick="return confirm('Are you sure? This will DELETE current data and replace it with the import.');"
+                                class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-sm whitespace-nowrap transition-colors">
+                                Restore
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

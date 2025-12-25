@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Grade Matrix{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Grade Matrix</h2>
+        <p class="text-slate-500 text-sm">Review/Edit all student scores.</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <a href="/admin"
+            class="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg shadow-sm transition-all text-sm">
+            Back
+        </a>
+        <button type="submit" form="scoreForm"
+            class="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95 text-sm">
+            Save Changes
+        </button>
+    </div>
+</div>
+
+<div
+    class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col max-h-[calc(100vh-12rem)]">
+    <form id="scoreForm" action="/admin/scores/update" method="post" class="flex-1 overflow-auto">
+        <table class="w-full text-left border-collapse relative">
+            <thead
+                class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider sticky top-0 z-10 shadow-sm">
+                <tr>
+                    <th class="px-4 py-3 border-b border-slate-200 bg-slate-50 sticky left-0 z-20 w-20">Seat</th>
+                    <th class="px-4 py-3 border-b border-slate-200 bg-slate-50 sticky left-20 z-20 w-48 border-r">Name
+                    </th>
+                    {% for exam in exams %}
+                    <th class="px-2 py-3 border-b border-slate-200 text-center min-w-[100px] whitespace-nowrap">
+                        <div class="flex flex-col items-center">
+                            <span>{{ exam.name }}</span>
+                            {% if exam.is_mandatory %}
+                            <span
+                                class="mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-secondary-100 text-secondary-600">M</span>
+                            {% endif %}
+                        </div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for student in students %}
+                <tr class="hover:bg-slate-50/80 transition-colors group">
+                    <td
+                        class="px-4 py-2 text-sm font-medium text-slate-900 sticky left-0 bg-white group-hover:bg-slate-50 transition-colors">
+                        {{ student.seat_number }}</td>
+                    <td
+                        class="px-4 py-2 text-sm text-slate-600 sticky left-20 bg-white group-hover:bg-slate-50 transition-colors border-r border-slate-100">
+                        {{ student.name }}</td>
+                    {% for exam in exams %}
+                    <td class="p-0 border-l border-transparent hover:border-slate-200 transition-colors">
+                        {% set val = score_map.get((student.id, exam.id), '') %}
+                        <input type="number" step="0.01" name="score_{{ student.id }}_{{ exam.id }}" value="{{ val }}"
+                            class="w-full h-full px-2 py-2 text-center text-sm bg-transparent focus:bg-white focus:ring-2 focus:ring-inset focus:ring-primary-500 outline-none transition-all placeholder-slate-200"
+                            placeholder="-">
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </form>
+</div>
+{% endblock %}
