@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4">
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-8 md:p-12">
+            <h1 class="text-3xl font-bold text-slate-900 mb-6 border-b pb-4">服務條款 (Terms of Service)</h1>
+
+            <div class="prose prose-slate max-w-none text-slate-600">
+                <p class="mb-4">生效日期：2025 年 12 月 25 日</p>
+                <p class="mb-6">歡迎使用「成績查詢系統」（以下簡稱本系統）。在使用本系統前，請詳細閱讀以下服務條款。若您繼續使用本系統，即表示您同意遵守本條款之所有內容。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">1. 服務內容</h2>
+                <p class="mb-4">本系統提供學生成績查詢、管理及成績提交驗證服務。系統有權隨時修改、暫停或終止部分或全部服務內容，而不另行通知。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">2. 帳戶使用規範</h2>
+                <ul class="list-disc pl-6 mb-4 space-y-2">
+                    <li><strong>帳號安全：</strong> 您應妥善保管您的 Google 登入憑證，不得將帳號借予他人使用。若發現帳號遭盜用，應立即通知管理員。</li>
+                    <li><strong>真實身分：</strong> 您必須使用本校/本單位核發或授權的 Google 帳號登入，且不得冒用他人身分。</li>
+                </ul>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">3. 成績提交與誠信原則</h2>
+                <ul class="list-disc pl-6 mb-4 space-y-2">
+                    <li><strong>誠實申報：</strong> 若您使用「提交成績」功能，必須確保上傳的試卷照片真實、清晰且未經變造，並誠實填寫分數。</li>
+                    <li><strong>禁止作弊：</strong> 任何偽造試卷、修改分數或意圖欺騙系統驗證機制的行為，均視為嚴重違規。</li>
+                    <li><strong>違規處分：</strong> 若經查證有不實申報或作弊行為，管理員有權駁回您的提交、鎖定您的帳號，並依校規/單位規定進行懲處。</li>
+                </ul>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">4. 系統使用限制與責任</h2>
+                <p class="mb-4">使用者不得進行以下行為：</p>
+                <ul class="list-disc pl-6 mb-4 space-y-2">
+                    <li>未經授權存取非本人的資料或管理介面，或洩漏其他學生的個人資料。</li>
+                    <li>利用自動化程式（Bot）或其他技術手段干擾系統運作或進行大量請求。</li>
+                    <li>上傳含有病毒、惡意程式、色情、暴力或任何侵犯他人權利（包含智慧財產權）的內容。</li>
+                </ul>
+                <p class="mb-4 mt-2">若您違反上述規定，我們有權立即暫停或終止您的帳號權限，並採取必要的法律行動。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">5. 智慧財產權</h2>
+                <p class="mb-4">本系統之程式碼、介面設計、商標及內容（除使用者上傳之資料外）均為本單位或技術提供者（YCYDev）所擁有，受著作權法與相關法律保護。未經授權，您不得擅自複製、修改或散布。
+                </p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">6. 免責聲明</h2>
+                <p class="mb-4">本系統致力於提供準確的成績資訊，但系統資料僅供參考，正式成績應以教務處/管理單位發布之正式文件為準。對於因系統故障、資料遺失、第三方服務（如 Google 登入、AI
+                    驗證）異常或不可抗力因素所導致的任何損失，本系統不負賠償責任。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">7. 準據法與管轄法院</h2>
+                <p class="mb-4">本服務條款之解釋與適用，以及與本條款有關的爭議，均應依照中華民國（台灣）法律為準據法。若發生訴訟，雙方同意以台灣台北地方法院為第一審管轄法院。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">8. 條款修改</h2>
+                <p class="mb-4">我們保留隨時修改本服務條款的權利。修改後的條款將於本系統公告，您持續使用本系統視為同意修正後的條款。</p>
+
+                <div class="mt-8 pt-6 border-t border-slate-200">
+                    <p class="text-sm text-slate-500">若不同意本條款，請立即停止使用本系統。</p>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <a href="/"
+                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    {{ translations[lang]['back_dashboard'] }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

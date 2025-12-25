@@ -117,7 +117,10 @@ TRANSLATIONS = {
         "submission_warning": "Please ensure the exam paper is correct and have been <strong>graded</strong> and the score is <strong>clearly visible</strong> and matches the score you typed.",
         "confirm_submission_alert": "Please confirm that you have checked the exam paper and score.",
         "cancel": "Cancel",
-        "confirm": "Confirm"
+        "confirm": "Confirm",
+        "privacy_policy": "Privacy Policy",
+        "terms_of_service": "Terms of Service",
+        "login_agreement": "By logging in, you agree to our <a href='/privacy' class='underline hover:text-slate-600'>Privacy Policy</a> and <a href='/tos' class='underline hover:text-slate-600'>Terms of Service</a>."
     },
     "zh": {
         "title": "成績查詢系統",
@@ -236,6 +239,9 @@ TRANSLATIONS = {
         "submission_warning": "請確認考卷正確，已經<strong>批改</strong>且分數<strong>清晰可見</strong>，並與您輸入的分數相符。",
         "confirm_submission_alert": "請確認您已檢查考卷和分數。",
         "cancel": "取消",
-        "confirm": "確認送出"
+        "confirm": "確認送出",
+        "privacy_policy": "隱私權政策",
+        "terms_of_service": "服務條款",
+        "login_agreement": "登入即代表您同意我們的<a href='/privacy' class='underline hover:text-slate-600'>隱私權政策</a>及<a href='/tos' class='underline hover:text-slate-600'>服務條款</a>。"
     }
 }

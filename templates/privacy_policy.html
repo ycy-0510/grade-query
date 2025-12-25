@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4">
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-8 md:p-12">
+            <h1 class="text-3xl font-bold text-slate-900 mb-6 border-b pb-4">隱私權政策 (Privacy Policy)</h1>
+
+            <div class="prose prose-slate max-w-none text-slate-600">
+                <p class="mb-4">生效日期：2025 年 12 月 25 日</p>
+                <p class="mb-6">感謝您使用「成績查詢系統」（以下簡稱本系統）。我們非常重視您的隱私權，本政策旨在說明我們如何收集、使用及保護您的個人資訊。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">1. 資料收集範圍</h2>
+                <ul class="list-disc pl-6 mb-4 space-y-2">
+                    <li><strong>個人身分資訊：</strong> 當您透過 Google 帳號登入時，我們會收集您的電子郵件地址及姓名，用於身分驗證及帳戶建立。</li>
+                    <li><strong>學術資料：</strong> 系統會儲存您的座號、考試名稱、成績分數及相關評量紀錄。</li>
+                    <li><strong>上傳內容：</strong> 當您使用「提交成績」功能時，我們會收集您上傳的試卷照片。</li>
+                    <li><strong>Cookies 與追蹤技術：</strong> 我們僅使用必要的 Session Cookies 來維持您的登入狀態及語言偏好設定。我們不會使用 Cookies
+                        進行廣告追蹤或跨網站追蹤。</li>
+                    <li><strong>系統紀錄：</strong> 我們會自動記錄您的登入時間、IP 位址及系統操作行為（如提交紀錄、查詢紀錄），以維護系統安全。</li>
+                </ul>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">2. 資料使用方式</h2>
+                <ul class="list-disc pl-6 mb-4 space-y-2">
+                    <li><strong>服務提供：</strong> 用於顯示您的個人成績報表、計算平均分數及排名（如適用）。</li>
+                    <li><strong>成績驗證與 AI 改善：</strong> 您上傳的試卷照片將傳送至 Google Gemini 等 AI
+                        服務進行自動辨識。<strong>請注意，根據第三方服務（Google）的政策，您上傳的影像資料可能會被用於改善其 AI
+                            模型與服務品質。</strong>若您不同意此點，請勿使用成績自主提交功能，改由人工方式繳交成績。</li>
+                    <li><strong>系統安全：</strong> 使用 Cloudflare Turnstile 等服務進行人機驗證，防止惡意攻擊，並記錄異常操作以保障資料安全。Cloudflare
+                        可能會收集您的裝置資訊與 IP 位址以進行驗證。</li>
+                </ul>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">3. 資料保存期限</h2>
+                <p class="mb-4">由於本系統並非學校正式系統，僅供臨時查詢與輔助使用：</p>
+                <ul class="list-disc pl-6 mb-4 space-y-2">
+                    <li><strong>學術資料與提交紀錄：</strong> 所有資料將在本次成績查詢/驗證服務結束後（例如學期結束或查詢期間截止）完全刪除，不會長期保留。</li>
+                </ul>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">4. 資料分享與揭露</h2>
+                <p class="mb-4">除以下情況外，我們不會將您的個人資訊分享給第三方：</p>
+                <ul class="list-disc pl-6 mb-4 space-y-2">
+                    <li><strong>授權人員：</strong> 本系統管理員可檢視所有學生的成績、上傳內容及操作紀錄。</li>
+                    <li><strong>服務供應商：</strong> 為了提供系統功能，部分資料（如圖片）會傳輸至受信任的第三方 AI 或雲端服務供應商進行處理，但僅限於本次服務目的。</li>
+                    <li><strong>法律要求：</strong> 若應法律程序或政府機關要求，我們可能需要揭露相關資訊。</li>
+                </ul>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">4. 資料安全保護</h2>
+                <p class="mb-4">我們採取適當的技術與管理措施來保護您的資料，包括加密傳輸、存取權限控管及定期的安全審查。但請注意，網際網路傳輸無法保證 100% 安全。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">5. 您的權利</h2>
+                <p class="mb-4">您有權查詢、閱覽您的個人成績資料。若發現資料有誤，請聯繫管理員進行更正。關於帳號刪除或其他隱私權利行使，請直接洽詢系統管理員。</p>
+
+                <h2 class="text-xl font-semibold text-slate-800 mt-8 mb-4">6. 政策更新</h2>
+                <p class="mb-4">本隱私權政策可能會不時更新。修改後的版本將發布於本頁面，建議您定期查看以了解最新資訊。</p>
+
+                <div class="mt-8 pt-6 border-t border-slate-200">
+                    <p class="text-sm text-slate-500">如有任何疑問，請聯繫系統管理員。</p>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <a href="/"
+                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    {{ translations[lang]['back_dashboard'] }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

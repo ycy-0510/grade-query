@@ -132,6 +132,16 @@ async def home(request: Request):
     lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("login.html", {"request": request, "lang": lang})
 
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy(request: Request):
+    lang = request.cookies.get("lang", "en")
+    return templates.TemplateResponse("privacy_policy.html", {"request": request, "lang": lang})
+
+@app.get("/tos", response_class=HTMLResponse)
+async def terms_of_service(request: Request):
+    lang = request.cookies.get("lang", "en")
+    return templates.TemplateResponse("terms_of_service.html", {"request": request, "lang": lang})
+
 # --- Admin Routes ---
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, session: Session = Depends(get_session)):
