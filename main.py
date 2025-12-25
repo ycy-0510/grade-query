@@ -48,6 +48,16 @@ def on_startup():
     with Session(engine) as session:
         cleanup_old_login_logs(session, retention_days=3)
 
+def get_real_ip(request: Request) -> str:
+    # Cloudflare Tunnel / Proxy Real IP Support
+    cf_ip = request.headers.get("CF-Connecting-IP")
+    if cf_ip:
+        return cf_ip
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0]
+    return request.client.host
+
 async def verify_turnstile(token: str, ip: str) -> bool:
     if not TURNSTILE_SECRET_KEY:
         return True # Bypass if not configured
@@ -123,7 +133,7 @@ async def auth_google(request: Request, session: Session = Depends(get_session))
             session, 
             email=db_user.email, 
             role=db_user.role, 
-            ip_address=request.client.host, 
+            ip_address=get_real_ip(request), 
             user_id=db_user.id, 
             name=db_user.name,
             user_agent=request.headers.get("user-agent")
@@ -135,7 +145,7 @@ async def auth_google(request: Request, session: Session = Depends(get_session))
             session, 
             email=db_user.email, 
             role=db_user.role, 
-            ip_address=request.client.host, 
+            ip_address=get_real_ip(request), 
             user_id=db_user.id, 
             name=db_user.name,
             user_agent=request.headers.get("user-agent")
@@ -493,7 +503,7 @@ async def student_submit_action(
             raise HTTPException(status_code=403, detail="Unauthorized")
             
         # 1. Verify Turnstile
-        client_ip = request.client.host
+        client_ip = get_real_ip(request)
         if not await verify_turnstile(cf_turnstile_response, client_ip):
              return JSONResponse({"success": False, "error": "CAPTCHA Verification Failed"}, status_code=400)
 
