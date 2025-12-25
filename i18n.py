@@ -52,7 +52,7 @@ TRANSLATIONS = {
         "ai_verification": "AI Verification Active",
         "ai_verification_desc": "Your upload will be verified by artificial intelligence. Ensure your photo is <strong>clear, bright, and shows the full exam paper</strong> with the score visible.",
         "claimed_score": "Claimed Score",
-        "claimed_score_placeholder": "e.g. 85.5",
+        "claimed_score_placeholder": "e.g. 85.5 (do not round)",
         "claimed_score_help": "Enter the score exactly as written on your paper.",
         "exam_photo": "Exam Photo",
         "verify_btn": "Submit for Verification",
@@ -113,7 +113,11 @@ TRANSLATIONS = {
         "log_reason": "Reason",
         "log_attempts": "Attempts",
         "view_logs": "View Logs",
-        "my_logs": "My Logs"
+        "my_logs": "My Logs",
+        "submission_warning": "Please ensure the exam paper is correct and have been <strong>graded</strong> and the score is <strong>clearly visible</strong> and matches the score you typed.",
+        "confirm_submission_alert": "Please confirm that you have checked the exam paper and score.",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
     },
     "zh": {
         "title": "成績查詢系統",
@@ -167,7 +171,7 @@ TRANSLATIONS = {
         "ai_verification": "AI 驗證啟用中",
         "ai_verification_desc": "您的上傳將由人工智慧驗證。請確保照片<strong>清晰、明亮，並顯示完整的試卷</strong>及分數。",
         "claimed_score": "申報分數",
-        "claimed_score_placeholder": "例如 85.5",
+        "claimed_score_placeholder": "例如 85.5（不得四捨五入）",
         "claimed_score_help": "請輸入試卷上顯示的確切分數。",
         "exam_photo": "試卷照片",
         "verify_btn": "提交驗證",
@@ -228,6 +232,10 @@ TRANSLATIONS = {
         "log_reason": "原因",
         "log_attempts": "嘗試次數",
         "view_logs": "查看紀錄",
-        "my_logs": "我的紀錄"
+        "my_logs": "我的紀錄",
+        "submission_warning": "請確認考卷正確，已經<strong>批改</strong>且分數<strong>清晰可見</strong>，並與您輸入的分數相符。",
+        "confirm_submission_alert": "請確認您已檢查考卷和分數。",
+        "cancel": "取消",
+        "confirm": "確認送出"
     }
 }

@@ -54,6 +54,18 @@
                     </div>
                 </div>
 
+                <!-- Confirmation Warning (Display Only) -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600 shrink-0" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span class="text-sm text-yellow-800 leading-relaxed font-medium">
+                        {{ translations[lang]['submission_warning'] | safe }}
+                    </span>
+                </div>
+
                 <!-- Turnstile -->
                 <div class="flex justify-center my-6">
                     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -88,9 +100,38 @@
             </form>
 
             <script>
-                document.getElementById('submitForm').onsubmit = async function (e) {
-                    e.preventDefault();
+                // Modal Logic
+                function openConfirmationModal() {
+                    const modal = document.getElementById('confirmModal');
+                    const checkbox = document.getElementById('modalConfirmCheckbox');
+                    checkbox.checked = false; // Reset checkbox
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
 
+                function closeModal() {
+                    const modal = document.getElementById('confirmModal');
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+
+                // Prevent default form submission and open modal
+                document.getElementById('submitForm').onsubmit = function (e) {
+                    e.preventDefault();
+                    openConfirmationModal();
+                };
+
+                // Actual Submission Logic
+                async function processSubmission() {
+                    const checkbox = document.getElementById('modalConfirmCheckbox');
+                    if (!checkbox.checked) {
+                        alert("{{ translations[lang]['confirm_submission_alert'] }}");
+                        return;
+                    }
+
+                    closeModal();
+
+                    const form = document.getElementById('submitForm');
                     const btn = document.getElementById('submitBtn');
                     const btnText = document.getElementById('btnText');
                     const btnSpinner = document.getElementById('btnSpinner');
@@ -105,10 +146,10 @@
                     btnText.innerText = "{{ translations[lang]['analyzing'] }}";
                     btnSpinner.classList.remove('hidden');
 
-                    const formData = new FormData(this);
+                    const formData = new FormData(form);
 
                     try {
-                        const response = await fetch(this.action, {
+                        const response = await fetch(form.action, {
                             method: 'POST',
                             body: formData
                         });
@@ -188,6 +229,43 @@
                     card.classList.remove('hidden');
                 }
             </script>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal"
+    class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 animate-fade-in">
+    <div
+        class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden transform transition-all scale-100 p-6">
+        <h3 class="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ translations[lang]['confirm'] }}
+        </h3>
+
+        <div class="bg-yellow-50 border border-yellow-100 rounded-xl p-4 mb-6">
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" id="modalConfirmCheckbox"
+                    class="mt-1 w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300">
+                <span class="text-sm text-yellow-800 leading-relaxed font-medium">
+                    {{ translations[lang]['submission_warning'] | safe }}
+                </span>
+            </label>
+        </div>
+
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeModal()"
+                class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors">
+                {{ translations[lang]['cancel'] }}
+            </button>
+            <button onclick="processSubmission()"
+                class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all active:scale-95">
+                {{ translations[lang]['confirm'] }}
+            </button>
         </div>
     </div>
 </div>
