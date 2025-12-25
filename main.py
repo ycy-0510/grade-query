@@ -19,7 +19,8 @@ from crud import (
     process_excel_upload, calculate_student_grades, create_user, get_user_by_email, 
     process_student_upload, get_score_matrix, bulk_update_scores, export_db_to_json, 
     import_db_from_json, generate_grades_excel, delete_exam, toggle_exam_submission,
-    create_submission_log, get_student_submission_status, get_submission_logs, get_all_exams
+    create_submission_log, get_student_submission_status, get_submission_logs, get_all_exams,
+    create_login_log, cleanup_old_login_logs, get_login_logs
 )
 from i18n import TRANSLATIONS
 
@@ -41,6 +42,11 @@ TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY")
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # Cleanup old logs (3 days retention)
+    from database import engine
+    from sqlmodel import Session
+    with Session(engine) as session:
+        cleanup_old_login_logs(session, retention_days=3)
 
 async def verify_turnstile(token: str, ip: str) -> bool:
     if not TURNSTILE_SECRET_KEY:
@@ -110,9 +116,30 @@ async def auth_google(request: Request, session: Session = Depends(get_session))
         'seat_number': db_user.seat_number
     }
     
+    
     if db_user.role == UserRole.ADMIN:
+        # Create Login Log
+        create_login_log(
+            session, 
+            email=db_user.email, 
+            role=db_user.role, 
+            ip_address=request.client.host, 
+            user_id=db_user.id, 
+            name=db_user.name,
+            user_agent=request.headers.get("user-agent")
+        )
         return RedirectResponse(url='/admin')
     else:
+        # Create Login Log
+        create_login_log(
+            session, 
+            email=db_user.email, 
+            role=db_user.role, 
+            ip_address=request.client.host, 
+            user_id=db_user.id, 
+            name=db_user.name,
+            user_agent=request.headers.get("user-agent")
+        )
         return RedirectResponse(url='/student')
 
 @app.get("/logout")
@@ -348,6 +375,20 @@ async def admin_logs(request: Request, session: Session = Depends(get_session)):
     logs = get_submission_logs(session)
     
     return templates.TemplateResponse("admin_logs.html", {
+        "request": request,
+        "logs": logs,
+        "lang": request.cookies.get("lang", "en")
+    })
+
+@app.get("/admin/login-logs", response_class=HTMLResponse)
+async def admin_login_logs(request: Request, session: Session = Depends(get_session)):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        return RedirectResponse("/")
+        
+    logs = get_login_logs(session)
+    
+    return templates.TemplateResponse("admin_login_logs.html", {
         "request": request,
         "logs": logs,
         "lang": request.cookies.get("lang", "en")

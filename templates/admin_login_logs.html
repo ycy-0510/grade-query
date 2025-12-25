@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Login Logs{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10 p-5 bg-white rounded shadow-lg">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Login Logs</h1>
+        <a href="/admin" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-300">
+            <thead>
+                <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                    <th class="py-3 px-6 text-left">Time (UTC)</th>
+                    <th class="py-3 px-6 text-left">Email</th>
+                    <th class="py-3 px-6 text-left">Name</th>
+                    <th class="py-3 px-6 text-left">Role</th>
+                    <th class="py-3 px-6 text-left">IP Address</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm font-light">
+                {% for log in logs %}
+                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                    <td class="py-3 px-6 text-left whitespace-nowrap">
+                        {{ log.login_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {{ log.email }}
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {{ log.name or "-" }}
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        <span
+                            class="{% if log.role == 'admin' %}bg-purple-200 text-purple-600{% else %}bg-blue-200 text-blue-600{% endif %} py-1 px-3 rounded-full text-xs">
+                            {{ log.role }}
+                        </span>
+                    </td>
+                    <td class="py-3 px-6 text-left">
+                        {{ log.ip_address }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

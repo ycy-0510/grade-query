@@ -1,5 +1,5 @@
 from sqlmodel import Session, select, delete
-from models import User, ExamType, Score, UserRole, SubmissionLog, SubmissionStatus
+from models import User, ExamType, Score, UserRole, SubmissionLog, SubmissionStatus, LoginLog
 import pandas as pd
 from typing import List, Dict, Any, Tuple, Optional
 import json
@@ -561,3 +561,27 @@ def get_submission_logs(session: Session, user_id: Optional[int] = None, limit: 
         })
         
     return logs
+
+from datetime import datetime, timedelta
+
+def create_login_log(session: Session, email: str, role: str, ip_address: str, user_id: Optional[int] = None, name: Optional[str] = None, user_agent: Optional[str] = None):
+    log = LoginLog(
+        user_id=user_id,
+        email=email,
+        name=name,
+        role=role,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+    return log
+
+def cleanup_old_login_logs(session: Session, retention_days: int = 3):
+    cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
+    session.exec(delete(LoginLog).where(LoginLog.login_time < cutoff_time))
+    session.commit()
+
+def get_login_logs(session: Session, limit: int = 100):
+    return session.exec(select(LoginLog).order_by(LoginLog.login_time.desc()).limit(limit)).all()

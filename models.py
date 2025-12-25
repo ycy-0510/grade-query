@@ -54,3 +54,13 @@ class SubmissionLog(SQLModel, table=True):
     
     user: User = Relationship(back_populates="submissions")
     exam_type: ExamType = Relationship(back_populates="submissions")
+
+class LoginLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id") # Optional link
+    email: str = Field(index=True)
+    name: Optional[str] = None
+    role: str
+    ip_address: str
+    user_agent: Optional[str] = None
+    login_time: datetime = Field(default_factory=datetime.utcnow)
