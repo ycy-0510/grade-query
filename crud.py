@@ -387,10 +387,10 @@ def export_db_to_json(session: Session) -> Dict[str, Any]:
     logs = session.exec(select(SubmissionLog)).all()
     
     data = {
-        "users": [u.model_dump() for u in users],
-        "exams": [e.model_dump() for e in exams],
-        "scores": [s.model_dump() for s in scores],
-        "logs": [l.model_dump() for l in logs]
+        "users": [u.model_dump(mode='json') for u in users],
+        "exams": [e.model_dump(mode='json') for e in exams],
+        "scores": [s.model_dump(mode='json') for s in scores],
+        "logs": [l.model_dump(mode='json') for l in logs]
     }
     return data
 
