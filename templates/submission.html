@@ -33,6 +33,7 @@
 
             <form action="/student/submit/{{ exam.id }}" method="post" enctype="multipart/form-data" class="space-y-6"
                 id="submitForm">
+                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
 
                 <!-- Score Claim -->
                 <div>

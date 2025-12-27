@@ -60,6 +60,7 @@
             </h4>
 
             <form action="/admin/upload-students" method="post" enctype="multipart/form-data" class="relative z-10">
+                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                 <div class="mb-4">
                     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{
                         translations[lang]['student_list_format'] }}</label>
@@ -93,6 +94,7 @@
             </h4>
 
             <form action="/admin/upload-grades" method="post" enctype="multipart/form-data" class="relative z-10">
+                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                 <div class="mb-4">
                     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{
                         translations[lang]['excel_files'] }}</label>
@@ -117,6 +119,7 @@
 
             <!-- Create Exam Manual -->
             <form action="/admin/exams/create" method="post" class="mb-6 flex gap-2">
+                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                 <input type="text" name="exam_name" placeholder="{{ translations[lang]['new_exam_name'] }}" required
                     class="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
                 <button type="submit"
@@ -168,6 +171,7 @@
 
                             <td class="px-5 py-3 text-center">
                                 <form action="/admin/exams/toggle-submission" method="post" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                                     <input type="hidden" name="exam_id" value="{{ exam.id }}">
                                     <input type="hidden" name="is_open"
                                         value="{% if exam.is_open_for_submission %}0{% else %}1{% endif %}">
@@ -182,6 +186,7 @@
                             <td class="px-5 py-3 text-right">
                                 <form action="/admin/exams/delete" method="post" class="inline"
                                     onsubmit="return confirm('{{ translations[lang]['delete_confirm'].format(exam.name) | replace('\'', '\\\'') }}');">
+                                    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                                     <input type="hidden" name="exam_id" value="{{ exam.id }}">
                                     <button type="submit" class="text-red-500 hover:text-red-700 p-1">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
@@ -207,6 +212,7 @@
             </div>
 
             <form id="config-form" action="/admin/update-exams" method="post">
+                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                 <button type="submit"
                     class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md transition-all active:scale-[0.98]">
                     {{ translations[lang]['save_mandatory'] }}
@@ -257,6 +263,7 @@
                             translations[lang]['destructive'] }}</span>
                     </h6>
                     <form action="/admin/import-json" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
                         <div class="flex gap-2">
                             <input
                                 class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 border border-slate-200 rounded-lg cursor-pointer bg-slate-50"

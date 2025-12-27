@@ -1,11 +1,14 @@
-from fastapi import FastAPI, Depends, Request, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, Depends, Request, UploadFile, File, Form, HTTPException, status
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.utils import get_openapi
 from starlette.middleware.sessions import SessionMiddleware
 from typing import List, Optional
 import os
 import json
 import httpx
+import secrets
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -24,20 +27,82 @@ from crud import (
 )
 from i18n import TRANSLATIONS
 
-app = FastAPI()
-SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe_dev_secret")
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+# Disable default OpenAPI
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
 
 templates = Jinja2Templates(directory="templates")
 templates.env.globals['translations'] = TRANSLATIONS
+
+# --- Security Dependency ---
+
+def get_current_user(request: Request):
+    return request.session.get('user')
+
+def is_admin(request: Request):
+    user = get_current_user(request)
+    if not user or user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    return user
+
+async def csrf_protect(request: Request):
+    """
+    Dependency to enforce CSRF protection on POST requests.
+    Validates that the '_csrf_token' in the form data matches the session token.
+    """
+    if request.method == "POST":
+        # 1. Get token from session
+        session_token = request.session.get("csrf_token")
+        if not session_token:
+            # Should trigger if session expired or not set
+            raise HTTPException(status_code=403, detail="CSRF Session Token Missing")
+            
+        # 2. Get token from form
+        form = await request.form()
+        incoming_token = form.get("csrf_token")
+        
+        # 3. Compare safely
+        if not incoming_token or not secrets.compare_digest(session_token, incoming_token):
+             raise HTTPException(status_code=403, detail="CSRF Token Invalid")
+
+@app.middleware("http")
+async def add_security_headers_and_csrf(request: Request, call_next):
+    # Ensure CSRF token exists in session
+    # NOTE: SessionMiddleware must be installed and wrapping this middleware for this to work.
+    if "csrf_token" not in request.session:
+        request.session["csrf_token"] = secrets.token_hex(32)
+    
+    response = await call_next(request)
+    
+    # Security Headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    
+    return response
+
+# Add SessionMiddleware LAST so it is the OUTERMOST middleware (runs first)
+SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe_dev_secret")
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 # --- AI Configuration ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 client = None
 if GEMINI_API_KEY:
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Failed to init Gemini: {e}")
 
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY")
+
+
+@app.get("/admin/openapi.json", include_in_schema=False)
+async def get_admin_openapi_json(request: Request, user: dict = Depends(is_admin)):
+    return JSONResponse(get_openapi(title="Grade Query System", version="1.0.0", routes=app.routes))
+
+@app.get("/admin/docs", include_in_schema=False)
+async def get_admin_docs(request: Request, user: dict = Depends(is_admin)):
+    return get_swagger_ui_html(openapi_url="/admin/openapi.json", title="Admin Docs")
 
 @app.on_event("startup")
 def on_startup():
@@ -99,7 +164,8 @@ async def auth_google(request: Request, session: Session = Depends(get_session))
             # Try to fetch from userinfo endpoint if not in token
             user_info = await oauth.google.userinfo(token=token)
     except Exception as e:
-        return HTMLResponse(f"Auth failed: {str(e)}", status_code=400)
+        import html
+        return HTMLResponse(f"Auth failed: {html.escape(str(e))}", status_code=400)
     
     email = user_info['email']
     name = user_info['name']
@@ -192,7 +258,7 @@ async def admin_dashboard(request: Request, session: Session = Depends(get_sessi
     lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("admin.html", {"request": request, "exams": exams, "lang": lang})
 
-@app.post("/admin/upload-grades")
+@app.post("/admin/upload-grades", dependencies=[Depends(csrf_protect)])
 async def upload_grades(request: Request, files: List[UploadFile] = File(...), session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -217,7 +283,7 @@ async def upload_grades(request: Request, files: List[UploadFile] = File(...), s
         "lang": request.cookies.get("lang", "en")
     }) 
 
-@app.post("/admin/exams/create")
+@app.post("/admin/exams/create", dependencies=[Depends(csrf_protect)])
 async def create_exam_manual(request: Request, exam_name: str = Form(...), session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -235,7 +301,7 @@ async def create_exam_manual(request: Request, exam_name: str = Form(...), sessi
     
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.post("/admin/exams/delete")
+@app.post("/admin/exams/delete", dependencies=[Depends(csrf_protect)])
 async def delete_exam_route(request: Request, exam_id: int = Form(...), session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -244,7 +310,7 @@ async def delete_exam_route(request: Request, exam_id: int = Form(...), session:
     delete_exam(session, exam_id)
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.post("/admin/exams/toggle-submission")
+@app.post("/admin/exams/toggle-submission", dependencies=[Depends(csrf_protect)])
 async def toggle_submission_route(request: Request, exam_id: int = Form(...), is_open: bool = Form(False), session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -253,7 +319,7 @@ async def toggle_submission_route(request: Request, exam_id: int = Form(...), is
     toggle_exam_submission(session, exam_id, is_open)
     return RedirectResponse(url="/admin", status_code=303)
 
-@app.post("/admin/update-exams")
+@app.post("/admin/update-exams", dependencies=[Depends(csrf_protect)])
 async def update_exams_config(
         request: Request, 
         mandatory_exams: List[int] = Form(default=[]), 
@@ -295,7 +361,7 @@ async def view_scores(request: Request, session: Session = Depends(get_session))
         "lang": request.cookies.get("lang", "en")
     })
 
-@app.post("/admin/scores/update")
+@app.post("/admin/scores/update", dependencies=[Depends(csrf_protect)])
 async def update_scores(request: Request, session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -311,7 +377,7 @@ async def update_scores(request: Request, session: Session = Depends(get_session
     # Redirect back to view
     return RedirectResponse(url="/admin/scores", status_code=303)
 
-@app.post("/admin/upload-students")
+@app.post("/admin/upload-students", dependencies=[Depends(csrf_protect)])
 async def upload_students(request: Request, file: UploadFile = File(...), session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -341,7 +407,7 @@ async def export_json(request: Request, session: Session = Depends(get_session))
     data = export_db_to_json(session)
     return JSONResponse(content=data, headers={"Content-Disposition": "attachment; filename=database.json"})
 
-@app.post("/admin/import-json")
+@app.post("/admin/import-json", dependencies=[Depends(csrf_protect)])
 async def import_json(request: Request, file: UploadFile = File(...), session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -488,7 +554,7 @@ async def student_submit_page(request: Request, exam_id: int, session: Session =
         "lang": lang
     })
 
-@app.post("/student/submit/{exam_id}")
+@app.post("/student/submit/{exam_id}", dependencies=[Depends(csrf_protect)])
 async def student_submit_action(
     request: Request, 
     exam_id: int, 

@@ -24,6 +24,7 @@
 <div
     class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col max-h-[calc(100vh-12rem)]">
     <form id="scoreForm" action="/admin/scores/update" method="post" class="flex-1 overflow-auto">
+        <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
         <table class="w-full text-left border-collapse relative">
             <thead
                 class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider sticky top-0 z-10 shadow-sm">
