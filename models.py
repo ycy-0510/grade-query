@@ -28,6 +28,7 @@ class ExamType(SQLModel, table=True):
     name: str = Field(unique=True)
     is_mandatory: bool = Field(default=False)
     is_open_for_submission: bool = Field(default=False)
+    submission_deadline: Optional[datetime] = Field(default=None)
     
     scores: List["Score"] = Relationship(back_populates="exam_type")
     submissions: List["SubmissionLog"] = Relationship(back_populates="exam_type")

@@ -73,10 +73,10 @@
                     </a>
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-4">
                     {% if request.session.get('user') %}
                     <div
-                        class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200/60 shadow-sm">
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200/60 shadow-sm">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                         <span class="text-sm font-medium text-slate-600">{{ translations[lang]['hello'] }}, {{
                             request.session.get('user').get('name') }}</span>
@@ -91,9 +91,71 @@
                         {{ translations[lang]['switch_lang'] }}
                     </a>
                 </div>
+
+                <!-- Mobile menu button -->
+                <div class="flex md:hidden items-center">
+                    <button id="mobile-menu-btn" type="button"
+                        class="text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-2 rounded-md transition-colors"
+                        aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <!-- Icon when menu is closed -->
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <!-- Icon when menu is open -->
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
+
+    <!-- Mobile Menu (Hidden by default) -->
+    <div id="mobile-menu"
+        class="hidden md:hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm transition-opacity"
+        onclick="closeMobileMenu()">
+        <div class="absolute right-0 top-0 bottom-0 w-64 bg-white shadow-xl transform transition-transform duration-300 translate-x-full"
+            id="mobile-menu-panel" onclick="event.stopPropagation()">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <span class="font-bold text-slate-800 text-lg">{{ translations[lang]['menu'] if 'menu' in
+                    translations[lang] else 'Menu' }}</span>
+                <button onclick="closeMobileMenu()" class="text-slate-400 hover:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4 space-y-4">
+                {% if request.session.get('user') %}
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <p class="text-xs text-slate-500 uppercase font-bold mb-1">{{ translations[lang]['signed_in_as'] if
+                        'signed_in_as' in translations[lang] else 'Signed in as' }}</p>
+                    <p class="font-medium text-slate-800">{{ request.session.get('user').get('name') }}</p>
+                </div>
+                <a href="/logout"
+                    class="block w-full text-center px-4 py-2 bg-slate-800 text-white font-medium rounded-lg shadow-sm hover:bg-slate-900 transition-colors">
+                    {{ translations[lang]['logout'] }}
+                </a>
+                <div class="h-px bg-slate-100 my-2"></div>
+                {% endif %}
+
+                <a href="/set-language/{% if lang == 'en' %}zh{% else %}en{% endif %}"
+                    class="flex items-center justify-between px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-700 font-medium">
+                    <span>{{ translations[lang]['switch_lang'] }}</span>
+                    <span class="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded">{{ lang|upper
+                        }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -125,17 +187,119 @@
 
 
     <script>
+        const i18n = {
+            time_remaining_pattern: "{{ translations[lang]['time_remaining_pattern'] }}",
+            time_remaining_pattern_min: "{{ translations[lang]['time_remaining_pattern_min'] }}"
+        };
+
+        // Mobile Menu Logic
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuPanel = document.getElementById('mobile-menu-panel');
+        let isMenuOpen = false;
+
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleMobileMenu();
+            });
+        }
+
+        function toggleMobileMenu() {
+            isMenuOpen = !isMenuOpen;
+            if (isMenuOpen) {
+                openMobileMenu();
+            } else {
+                closeMobileMenu();
+            }
+        }
+
+        function openMobileMenu() {
+            isMenuOpen = true;
+            mobileMenu.classList.remove('hidden');
+            // Small delay to allow display:block to apply before transition
+            setTimeout(() => {
+                mobileMenuPanel.classList.remove('translate-x-full');
+            }, 10);
+
+            // Update icon
+            const icons = mobileMenuBtn.querySelectorAll('svg');
+            icons[0].classList.add('hidden');
+            icons[1].classList.remove('hidden');
+        }
+
+        function closeMobileMenu() {
+            isMenuOpen = false;
+            mobileMenuPanel.classList.add('translate-x-full');
+
+            // Wait for transition to finish before hiding container
+            setTimeout(() => {
+                mobileMenu.classList.add('hidden');
+            }, 300);
+
+            // Update icon
+            const icons = mobileMenuBtn.querySelectorAll('svg');
+            icons[0].classList.remove('hidden');
+            icons[1].classList.add('hidden');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.local-time').forEach(el => {
                 let utcTime = el.getAttribute('data-utc');
+                let format = el.getAttribute('data-format'); // Check for 'relative' format
+
                 if (utcTime) {
-                    // if it doesn't end with Z and doesn't look like it has an offset (+00:00 or -00:00)
-                    // we assume it is a naive UTC string from backend and append Z
                     if (!utcTime.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(utcTime)) {
                         utcTime += 'Z';
                     }
                     const date = new Date(utcTime);
-                    el.textContent = date.toLocaleString();
+                    const localString = date.toLocaleString();
+
+                    if (format === 'relative') {
+                        const now = new Date();
+                        const diffMs = date - now;
+                        const diffHrs = diffMs / (1000 * 60 * 60);
+
+                        // If positive and less than 24 hours
+                        if (diffHrs > 0 && diffHrs < 24) {
+                            const hours = Math.floor(diffHrs);
+                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+                            let relativeString;
+                            if (hours > 0) {
+                                relativeString = i18n.time_remaining_pattern.replace('{}', hours).replace('{}', minutes);
+                                // Handle python-style placeholders {0}, {1} for zh
+                                relativeString = relativeString.replace('{0}', hours).replace('{1}', minutes);
+                            } else {
+                                relativeString = i18n.time_remaining_pattern_min.replace('{}', minutes);
+                                relativeString = relativeString.replace('{0}', minutes);
+                            }
+
+                            el.textContent = relativeString;
+                            el.style.cursor = 'pointer';
+                            el.setAttribute('title', localString); // Tooltip
+
+                            // Interaction state
+                            el.dataset.showing = 'relative';
+
+                            el.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation(); // Prevent card clicks if any
+                                if (el.dataset.showing === 'relative') {
+                                    el.textContent = localString;
+                                    el.dataset.showing = 'absolute';
+                                } else {
+                                    el.textContent = relativeString;
+                                    el.dataset.showing = 'relative';
+                                }
+                            });
+                        } else {
+                            // Fallback to standard local string if passed or > 24h
+                            el.textContent = localString;
+                        }
+                    } else {
+                        el.textContent = localString;
+                    }
                 }
             });
         });

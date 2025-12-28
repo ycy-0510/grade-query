@@ -3,6 +3,7 @@ from models import User, ExamType, Score, UserRole, SubmissionLog, SubmissionSta
 import pandas as pd
 from typing import List, Dict, Any, Tuple, Optional
 import json
+from datetime import datetime
 
 def delete_exam(session: Session, exam_id: int):
     # Delete associated scores and submissions first (cascade usually handles this if configured, but let's be safe)
@@ -18,6 +19,28 @@ def toggle_exam_submission(session: Session, exam_id: int, is_open: bool):
     exam = session.get(ExamType, exam_id)
     if exam:
         exam.is_open_for_submission = is_open
+        session.add(exam)
+        session.add(exam)
+        session.commit()
+
+def is_exam_effectively_open(exam: ExamType) -> bool:
+    """
+    Determines if an exam is effectively open for submission.
+    Requires:
+    1. Manual switch (is_open_for_submission) is True
+    2. Deadline is either None or in the future
+    """
+    if not exam.is_open_for_submission:
+        return False
+    if exam.submission_deadline and datetime.utcnow() > exam.submission_deadline:
+        return False
+    return True
+
+
+def update_exam_deadline(session: Session, exam_id: int, deadline: Optional[datetime]):
+    exam = session.get(ExamType, exam_id)
+    if exam:
+        exam.submission_deadline = deadline
         session.add(exam)
         session.commit()
 
@@ -48,6 +71,7 @@ def get_student_submission_status(session: Session, user_id: int, exam_id: int):
     
     count = len(submissions)
     
+    
     # Check if any is approved
     is_approved = any(s.status == SubmissionStatus.APPROVED for s in submissions)
     status = SubmissionStatus.APPROVED if is_approved else SubmissionStatus.PENDING
@@ -55,6 +79,16 @@ def get_student_submission_status(session: Session, user_id: int, exam_id: int):
         # Determine strict status from last log
         status = submissions[0].status
         
+    # Check Deadline
+    exam = session.get(ExamType, exam_id)
+    if exam and exam.submission_deadline and datetime.utcnow() > exam.submission_deadline:
+        # If deadline passed, we can mark as effectively closed/rejected if not approved
+        # But we don't change the DB status, just return a "Closed" indicator?
+        # The function returns (count, status). 
+        # The CALLER checks if it can submit.
+        # So we don't need to change return value, but we might want to check this in 'can_submit' logic elsewhere.
+        pass
+
     return count, status
 
 def get_user_by_email(session: Session, email: str) -> User | None:
@@ -178,7 +212,7 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
         
         # Check submission eligibility
         can_submit = False
-        if exam.is_open_for_submission and score_val is None:
+        if is_exam_effectively_open(exam) and score_val is None:
              count, status = get_student_submission_status(session, user_id, exam.id)
              if count < 3 and status != SubmissionStatus.APPROVED:
                  can_submit = True
@@ -189,7 +223,8 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
             "score": score_val, # For Display (None becomes "-")
             "is_mandatory": exam.is_mandatory,
             "included": False,
-            "can_submit": can_submit
+            "can_submit": can_submit,
+            "submission_deadline": exam.submission_deadline
         }
         
         formatted_rows.append(item)

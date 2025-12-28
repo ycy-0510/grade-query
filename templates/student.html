@@ -40,8 +40,8 @@
     {% endif %}
 
     <!-- Tab Navigation -->
-    <div class="border-b border-slate-200 mb-8">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+    <div class="border-b border-slate-200 mb-8 overflow-x-auto">
+        <nav class="-mb-px flex space-x-8 min-w-max" aria-label="Tabs">
             <button onclick="switchTab('grades')" id="tab-btn-grades"
                 class="border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
                 {{ translations[lang]['my_grades'] }}
@@ -119,23 +119,34 @@
                                 <tr
                                     class="transition-colors {% if item.included %}bg-green-50/30 hover:bg-green-50/60{% else %}hover:bg-slate-50{% endif %}">
                                     <td class="px-6 py-3 text-sm font-medium text-slate-800">
-                                        <div class="flex items-center gap-2">
-                                            {{ item.exam_name }}
-                                            {% if item.can_submit %}
-                                            <a href="/student/submit/{{ item.exam_id }}"
-                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors">
-                                                {{ translations[lang]['submit_grade'] }}
-                                            </a>
-                                            {% endif %}
-                                        </div>
+                                        {{ item.exam_name }}
                                     </td>
                                     <td
                                         class="px-6 py-3 text-sm font-bold {% if item.included %}text-green-700{% else %}text-slate-500{% endif %}">
-                                        {% if item.score is none %}
-                                        -
-                                        {% else %}
-                                        {{ item.score }}
-                                        {% endif %}
+                                        <div class="flex flex-col items-start gap-1">
+                                            {% if item.score is none %}
+                                            {% if item.can_submit %}
+                                            <a href="/student/submit/{{ item.exam_id }}"
+                                                class="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm">
+                                                {{ translations[lang]['submit_grade'] }}
+                                            </a>
+                                            {% if item.submission_deadline %}
+                                            <span class="text-[10px] text-slate-400 font-medium">
+                                                {{ translations[lang]['deadline'] }}:
+                                                <span class="local-time font-bold text-slate-600 block"
+                                                    data-utc="{{ item.submission_deadline.isoformat() }}"
+                                                    data-format="relative">
+                                                    {{ item.submission_deadline }} UTC
+                                                </span>
+                                            </span>
+                                            {% endif %}
+                                            {% else %}
+                                            <span>-</span>
+                                            {% endif %}
+                                            {% else %}
+                                            {{ item.score }}
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td class="px-6 py-3">
                                         {% if item.is_mandatory %}
@@ -202,6 +213,17 @@
 
                     <p class="text-sm text-slate-500 mb-6">{{ translations[lang]['attempts_remaining'].format(3 -
                         exam.attempt_count) | safe }}</p>
+
+                    {% if exam.submission_deadline %}
+                    <p
+                        class="text-xs text-slate-400 mb-4 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        {{ translations[lang]['deadline'] }}:
+                        <span class="local-time font-mono text-slate-800 text-sm font-bold block mt-1"
+                            data-utc="{{ exam.submission_deadline.isoformat() }}" data-format="relative">
+                            {{ exam.submission_deadline }} UTC
+                        </span>
+                    </p>
+                    {% endif %}
 
                     {% if exam.can_submit %}
                     <a href="/student/submit/{{ exam.id }}"

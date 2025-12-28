@@ -72,6 +72,7 @@ TRANSLATIONS = {
         "student_list_format": "Student List (.xlsx)",
         "upload_students_btn": "Upload Students",
         "student_format_hint": "Format: Seat Number, Name, Email",
+        "upload_data_btn": "Upload Data",
         "upload_grades_title": "Upload Grades",
         "excel_files": "Excel Files (.xlsx)",
         "upload_grades_hint": "Column 1: Seat Number, Column 2+: Exam Names",
@@ -85,6 +86,11 @@ TRANSLATIONS = {
         "actions_th": "Actions",
         "open_status": "OPEN",
         "closed_status": "CLOSED",
+        "expired": "EXPIRED",
+        "open_until": "Open Until",
+        "deadline": "Deadline",
+        "set_deadline": "Set Deadline",
+        "clear_deadline": "Clear",
         "save_mandatory": "Save Mandatory Settings",
         "database_management": "Database Management",
         "export_data": "Export Data",
@@ -129,7 +135,11 @@ TRANSLATIONS = {
         "name_header": "Name",
         "role_header": "Role",
         "ip_address_header": "IP Address",
-        "time_header": "Time"
+        "time_header": "Time",
+        "time_remaining_pattern": "{} hours {} minutes remaining",
+        "time_remaining_pattern_min": "{} minutes remaining",
+        "time_hour": "hours",
+        "time_minute": "minutes"
     },
     "zh": {
         "title": "成績查詢系統",
@@ -203,6 +213,7 @@ TRANSLATIONS = {
         "student_list_format": "學生名單 (.xlsx)",
         "upload_students_btn": "上傳學生",
         "student_format_hint": "格式：座號、姓名、Email",
+        "upload_data_btn": "上傳資料",
         "upload_grades_title": "上傳成績",
         "excel_files": "Excel 檔案 (.xlsx)",
         "upload_grades_hint": "第 1 欄：座號，第 2+ 欄：考試名稱",
@@ -216,6 +227,11 @@ TRANSLATIONS = {
         "actions_th": "操作",
         "open_status": "開啟",
         "closed_status": "關閉",
+        "expired": "已過期",
+        "open_until": "開放至",
+        "deadline": "截止時間",
+        "set_deadline": "設定截止",
+        "clear_deadline": "清除",
         "save_mandatory": "儲存必選設定",
         "database_management": "資料庫管理",
         "export_data": "匯出資料",
@@ -260,6 +276,10 @@ TRANSLATIONS = {
         "name_header": "姓名",
         "role_header": "角色",
         "ip_address_header": "IP 位址",
-        "time_header": "時間"
+        "time_header": "時間",
+        "time_remaining_pattern": "剩餘 {0} 小時 {1} 分鐘",
+        "time_remaining_pattern_min": "剩餘 {0} 分鐘",
+        "time_hour": "小時",
+        "time_minute": "分鐘"
     }
 }

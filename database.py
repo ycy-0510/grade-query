@@ -42,6 +42,17 @@ def migrate_db():
                 connection.commit()
             except Exception as e:
                 print(f"Migration error: {e}")
+
+        # Check for 'submission_deadline' column
+        try:
+            connection.execute(text("SELECT submission_deadline FROM examtype LIMIT 0"))
+        except Exception:
+            print("Migrating: Adding 'submission_deadline' to 'examtype' table.")
+            try:
+                connection.execute(text("ALTER TABLE examtype ADD COLUMN submission_deadline DATETIME DEFAULT NULL"))
+                connection.commit()
+            except Exception as e:
+                print(f"Migration error (submission_deadline): {e}")
                 
         # Fix for Data too long error in SubmissionLog
         try:

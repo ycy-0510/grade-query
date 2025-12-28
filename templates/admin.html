@@ -8,7 +8,18 @@
         <h2 class="text-3xl font-bold text-slate-900 tracking-tight">{{ translations[lang]['dashboard'] }}</h2>
         <p class="text-slate-500 mt-1">{{ translations[lang]['dashboard_subtitle'] }}</p>
     </div>
-    <div class="flex gap-3">
+    <div class="flex flex-wrap gap-3">
+        <!-- New Upload Data Button -->
+        <button type="button" onclick="openUploadModal()"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            {{ translations[lang]['upload_data_btn'] }}
+        </button>
+
         <a href="/admin/logs"
             class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24"
@@ -40,78 +51,10 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-    <div class="space-y-8">
-        <!-- 1. Import Students -->
-        <div
-            class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300">
-            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-primary-500" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-            </div>
+<div class="w-full max-w-5xl mx-auto space-y-8">
+    <!-- Right Column content (now main column) -->
 
-            <h4 class="flex items-center gap-3 text-lg font-bold text-slate-800 mb-4 relative z-10">
-                <span
-                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-700 text-sm font-bold">1</span>
-                {{ translations[lang]['import_students'] }}
-            </h4>
-
-            <form action="/admin/upload-students" method="post" enctype="multipart/form-data" class="relative z-10">
-                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{
-                        translations[lang]['student_list_format'] }}</label>
-                    <input
-                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-all border border-slate-200 rounded-lg cursor-pointer bg-slate-50 focus:outline-none"
-                        type="file" name="file" required>
-                    <p class="mt-2 text-xs text-slate-400">{{ translations[lang]['student_format_hint'] }}</p>
-                </div>
-                <button type="submit"
-                    class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl shadow-sm hover:shadow transition-all active:scale-[0.98]">
-                    {{ translations[lang]['upload_students_btn'] }}
-                </button>
-            </form>
-        </div>
-
-        <!-- 2. Upload Grades -->
-        <div
-            class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 relative overflow-hidden group hover:shadow-md transition-all duration-300">
-            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-24 h-24 text-indigo-500" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-            </div>
-
-            <h4 class="flex items-center gap-3 text-lg font-bold text-slate-800 mb-4 relative z-10">
-                <span
-                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 text-sm font-bold">2</span>
-                {{ translations[lang]['upload_grades_title'] }}
-            </h4>
-
-            <form action="/admin/upload-grades" method="post" enctype="multipart/form-data" class="relative z-10">
-                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{
-                        translations[lang]['excel_files'] }}</label>
-                    <input
-                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all border border-slate-200 rounded-lg cursor-pointer bg-slate-50 focus:outline-none"
-                        type="file" name="files" multiple required>
-                    <p class="mt-2 text-xs text-slate-400">{{ translations[lang]['upload_grades_hint'] }}</p>
-                </div>
-                <button type="submit"
-                    class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
-                    {{ translations[lang]['upload_process_btn'] }}
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Right Column -->
+    <!-- Main Column -->
     <div class="space-y-8">
         <!-- Exam Management -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
@@ -170,17 +113,36 @@
                             </td>
 
                             <td class="px-5 py-3 text-center">
-                                <form action="/admin/exams/toggle-submission" method="post" class="inline">
-                                    <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
-                                    <input type="hidden" name="exam_id" value="{{ exam.id }}">
-                                    <input type="hidden" name="is_open"
-                                        value="{% if exam.is_open_for_submission %}0{% else %}1{% endif %}">
-                                    <button type="submit"
-                                        class="px-3 py-1 text-xs font-bold rounded-full transition-colors {% if exam.is_open_for_submission %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-slate-100 text-slate-500 hover:bg-slate-200{% endif %}">
-                                        {% if exam.is_open_for_submission %}{{ translations[lang]['open_status'] }}{%
-                                        else %}{{ translations[lang]['closed_status'] }}{% endif %}
+                                <!-- Unified Status Pill -->
+                                <!-- Logic for initial render -->
+                                {% set is_expired = False %}
+                                {% if exam.submission_deadline and exam.submission_deadline < now_utc %} {% set
+                                    is_expired=True %} {% endif %} <button type="button"
+                                    onclick="openEditStatusModal(this)" data-exam-id="{{ exam.id }}"
+                                    data-exam-name="{{ exam.name }}"
+                                    data-is-open="{{ 'true' if exam.is_open_for_submission else 'false' }}"
+                                    data-deadline="{{ exam.submission_deadline.isoformat() if exam.submission_deadline else '' }}"
+                                    id="status-pill-{{ exam.id }}" class="px-3 py-1 text-xs font-bold rounded-full transition-colors 
+                                    {% if not exam.is_open_for_submission %}
+                                        bg-slate-100 text-slate-500 hover:bg-slate-200
+                                    {% elif is_expired %}
+                                        bg-red-100 text-red-700 hover:bg-red-200
+                                    {% elif exam.submission_deadline %}
+                                        bg-blue-100 text-blue-700 hover:bg-blue-200
+                                    {% else %}
+                                        bg-green-100 text-green-700 hover:bg-green-200
+                                    {% endif %}">
+
+                                    {% if not exam.is_open_for_submission %}
+                                    {{ translations[lang]['closed_status'] }}
+                                    {% elif is_expired %}
+                                    {{ translations[lang]['expired'] }}
+                                    {% elif exam.submission_deadline %}
+                                    {{ translations[lang]['open_until'] }}...
+                                    {% else %}
+                                    {{ translations[lang]['open_status'] }}
+                                    {% endif %}
                                     </button>
-                                </form>
                             </td>
 
                             <td class="px-5 py-3 text-right">
@@ -202,7 +164,7 @@
                         {% endfor %}
                         {% if not exams %}
                         <tr>
-                            <td colspan="4" class="px-5 py-4 text-center text-sm text-slate-400 italic">{{
+                            <td colspan="5" class="px-5 py-4 text-center text-sm text-slate-400 italic">{{
                                 translations[lang]['no_exams'] }}
                             </td>
                         </tr>
@@ -280,4 +242,321 @@
         </div>
     </div>
 </div>
+
+</div>
+
+<script>
+
+    // --- Upload Modal Logic ---
+    function openUploadModal() {
+        document.getElementById('uploadModal').classList.remove('hidden');
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadModal').classList.add('hidden');
+    }
+</script>
+
+
+<!-- Edit Status Modal -->
+<div id="statusModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeStatusModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div
+                        class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <svg class="h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">
+                            {{ translations[lang]['set_deadline'] }} <!-- Reuse key or use edit_status -->
+                        </h3>
+                        <div class="mt-2 text-sm text-gray-500" id="modal-exam-name">Exam Name</div>
+
+                        <div class="mt-4 space-y-4">
+                            <!-- Toggle switch -->
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm font-medium text-gray-700">{{ translations[lang]['open_status']
+                                    }}</label>
+                                <button type="button" id="toggle-btn"
+                                    class="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 bg-gray-200"
+                                    role="switch" aria-checked="false" onclick="toggleSwitch()">
+                                    <span aria-hidden="true" id="toggle-circle"
+                                        class="translate-x-0 pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"></span>
+                                </button>
+                            </div>
+
+                            <!-- Deadline Input -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">{{
+                                    translations[lang]['deadline'] }}</label>
+                                <div class="flex gap-2">
+                                    <input type="datetime-local" id="modal-deadline-input"
+                                        class="flex-1 border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <button type="button"
+                                        onclick="document.getElementById('modal-deadline-input').value = ''"
+                                        class="px-3 py-2 border border-slate-200 rounded-md text-slate-500 hover:bg-slate-50 text-xs font-bold">
+                                        {{ translations[lang]['clear_deadline'] }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-row-reverse gap-2 mt-6">
+                                <button type="button" onclick="saveStatus()"
+                                    class="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:w-auto sm:text-sm">
+                                    {{ translations[lang]['save_changes_btn'] }}
+                                </button>
+                                <button type="button" onclick="closeStatusModal()"
+                                    class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:w-auto sm:text-sm">
+                                    {{ translations[lang]['cancel'] }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Data Modal -->
+<div id="uploadModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeUploadModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b border-gray-200">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                    {{ translations[lang]['upload_data_btn'] }}
+                </h3>
+                <button type="button" onclick="closeUploadModal()"
+                    class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-4 py-5 sm:p-6 space-y-8">
+                <!-- 1. Import Students -->
+                <div>
+                    <h4 class="flex items-center gap-3 text-base font-bold text-slate-800 mb-4">
+                        <span
+                            class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-700 text-sm font-bold">1</span>
+                        {{ translations[lang]['import_students'] }}
+                    </h4>
+                    <form action="/admin/upload-students" method="post" enctype="multipart/form-data"
+                        class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
+                        <div class="mb-4">
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{
+                                translations[lang]['student_list_format'] }}</label>
+                            <input
+                                class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-all border border-slate-200 rounded-lg cursor-pointer bg-white focus:outline-none"
+                                type="file" name="file" required>
+                            <p class="mt-2 text-xs text-slate-400">{{ translations[lang]['student_format_hint'] }}</p>
+                        </div>
+                        <button type="submit"
+                            class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl shadow-sm hover:shadow transition-all active:scale-[0.98]">
+                            {{ translations[lang]['upload_students_btn'] }}
+                        </button>
+                    </form>
+                </div>
+
+                <div class="border-t border-slate-200"></div>
+
+                <!-- 2. Upload Grades -->
+                <div>
+                    <h4 class="flex items-center gap-3 text-base font-bold text-slate-800 mb-4">
+                        <span
+                            class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 text-sm font-bold">2</span>
+                        {{ translations[lang]['upload_grades_title'] }}
+                    </h4>
+
+                    <form action="/admin/upload-grades" method="post" enctype="multipart/form-data"
+                        class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
+                        <div class="mb-4">
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{
+                                translations[lang]['excel_files'] }}</label>
+                            <input
+                                class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all border border-slate-200 rounded-lg cursor-pointer bg-white focus:outline-none"
+                                type="file" name="files" multiple required>
+                            <p class="mt-2 text-xs text-slate-400">{{ translations[lang]['upload_grades_hint'] }}</p>
+                        </div>
+                        <button type="submit"
+                            class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
+                            {{ translations[lang]['upload_process_btn'] }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentExamId = null;
+    let isToggledOn = false;
+
+    // Helper to format Date for input
+    function toLocalIso(utcIso) {
+        if (!utcIso) return "";
+        let isoStr = utcIso;
+        if (!isoStr.endsWith('Z')) isoStr += 'Z';
+        const date = new Date(isoStr);
+        const offsetMs = date.getTimezoneOffset() * 60000;
+        const localDate = new Date(date.getTime() - offsetMs);
+        return localDate.toISOString().slice(0, 16);
+    }
+
+    function toggleSwitch() {
+        isToggledOn = !isToggledOn;
+        updateSwitchUI();
+    }
+
+    function updateSwitchUI() {
+        const btn = document.getElementById('toggle-btn');
+        const circle = document.getElementById('toggle-circle');
+        if (isToggledOn) {
+            btn.classList.remove('bg-gray-200');
+            btn.classList.add('bg-green-500');
+            circle.classList.remove('translate-x-0');
+            circle.classList.add('translate-x-5');
+        } else {
+            btn.classList.add('bg-gray-200');
+            btn.classList.remove('bg-green-500');
+            circle.classList.add('translate-x-0');
+            circle.classList.remove('translate-x-5');
+        }
+    }
+
+    function openEditStatusModal(btn) {
+        currentExamId = btn.dataset.examId;
+        const examName = btn.dataset.examName;
+        const isOpen = btn.dataset.isOpen === 'true';
+        const utcDeadline = btn.dataset.deadline;
+
+        document.getElementById('modal-exam-name').textContent = examName;
+
+        // Set Toggle
+        isToggledOn = isOpen;
+        updateSwitchUI();
+
+        // Set Deadline
+        document.getElementById('modal-deadline-input').value = toLocalIso(utcDeadline);
+
+        document.getElementById('statusModal').classList.remove('hidden');
+    }
+
+    function closeStatusModal() {
+        document.getElementById('statusModal').classList.add('hidden');
+    }
+
+    async function saveStatus() {
+        const deadlineVal = document.getElementById('modal-deadline-input').value;
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const offset = new Date().getTimezoneOffset(); // minutes. e.g. -480
+
+        const payload = {
+            exam_id: parseInt(currentExamId),
+            is_open: isToggledOn,
+            deadline: deadlineVal ? deadlineVal : null,
+            timezone_offset: offset
+        };
+
+        try {
+            const res = await fetch('/admin/api/exams/update-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                updatePill(data);
+                closeStatusModal();
+            } else {
+                alert('Error updating status');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error updating status');
+        }
+    }
+
+    function updatePill(data) {
+        const btn = document.getElementById('status-pill-' + data.exam_id);
+        if (!btn) return;
+
+        // Update data attributes
+        btn.dataset.isOpen = data.is_open ? 'true' : 'false';
+        btn.dataset.deadline = data.deadline ? data.deadline : '';
+
+        // Logic for formatting
+        // We need 'is_deadline_passed' logic in JS or from server? 
+        // Server returned 'is_effectively_open'. But visual display distinguishes 'expired'.
+
+        let text = "";
+        let classes = "px-3 py-1 text-xs font-bold rounded-full transition-colors ";
+
+        // Re-calculate expired in JS? Or rely on server? 
+        // Let's use JS logic to be snappy
+        const now = new Date();
+        const deadlineDate = data.deadline ? new Date(data.deadline) : null; // UTC String parsed by JS is usually local? No, if ends with Z it is UTC.
+        // data.deadline from server is isoformat. Python isoformat doesn't always have Z if naive, but we store it?
+        // Wait, main.py sends .isoformat(). If it's naive in DB, it sends naive. Frontend handles it?
+        // Let's just assume if !is_effectively_open and is_open -> Expired.
+
+        // Actually, let's use the visual logic from Template:
+        // if not is_open: CLOSED (Gray)
+        // else if deadline < now:EXPIRED (Red)
+        // else if deadline: OPEN UNTIL ... (Blue)
+        // else: OPEN (Green)
+
+        let isExpired = false;
+        if (data.deadline) {
+            // Python ISO string might not have Z. "2023-01-01T10:00:00"
+            // Interpretation depends on browser if no Z.
+            // Best to treat as UTC. appending Z if missing in JS side.
+            let dStr = data.deadline;
+            if (!dStr.endsWith('Z')) dStr += 'Z';
+            if (new Date(dStr) < now) isExpired = true;
+        }
+
+        if (!data.is_open) {
+            classes += "bg-slate-100 text-slate-500 hover:bg-slate-200";
+            text = "{{ translations[lang]['closed_status'] }}";
+        } else if (isExpired) {
+            classes += "bg-red-100 text-red-700 hover:bg-red-200";
+            text = "{{ translations[lang]['expired'] }}";
+        } else if (data.deadline) {
+            classes += "bg-blue-100 text-blue-700 hover:bg-blue-200";
+            text = "{{ translations[lang]['open_until'] }}...";
+        } else {
+            classes += "bg-green-100 text-green-700 hover:bg-green-200";
+            text = "{{ translations[lang]['open_status'] }}";
+        }
+
+        btn.className = classes;
+        btn.textContent = text;
+    }
+</script>
 {% endblock %}

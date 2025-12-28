@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, Request, UploadFile, File, Form, HTTPException, status
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.openapi.utils import get_openapi
@@ -14,6 +15,8 @@ from google.genai import types
 from PIL import Image
 import io
 
+from datetime import datetime, timedelta
+ 
 from database import init_db, get_session
 from models import User, Score, ExamType, UserRole, SubmissionLog, SubmissionStatus
 from sqlmodel import Session, select
@@ -23,7 +26,7 @@ from crud import (
     process_student_upload, get_score_matrix, bulk_update_scores, export_db_to_json, 
     import_db_from_json, generate_grades_excel, delete_exam, toggle_exam_submission,
     create_submission_log, get_student_submission_status, get_submission_logs, get_all_exams,
-    create_login_log, cleanup_old_login_logs, get_login_logs
+    create_login_log, cleanup_old_login_logs, get_login_logs, update_exam_deadline, is_exam_effectively_open
 )
 from i18n import TRANSLATIONS
 
@@ -57,9 +60,20 @@ async def csrf_protect(request: Request):
             # Should trigger if session expired or not set
             raise HTTPException(status_code=403, detail="CSRF Session Token Missing")
             
-        # 2. Get token from form
-        form = await request.form()
-        incoming_token = form.get("csrf_token")
+        # 2. Get token from form or header
+        incoming_token = None
+        
+        # Check Header first (common for AJAX/JSON)
+        incoming_token = request.headers.get("X-CSRF-Token")
+        
+        if not incoming_token:
+            # Fallback to Form Data (for standard HTML forms)
+            try:
+                form = await request.form()
+                incoming_token = form.get("csrf_token")
+            except Exception:
+                # If body is JSON or can't be parsed as form, ignore form check
+                pass
         
         # 3. Compare safely
         if not incoming_token or not secrets.compare_digest(session_token, incoming_token):
@@ -256,7 +270,12 @@ async def admin_dashboard(request: Request, session: Session = Depends(get_sessi
     
     exams = get_all_exams(session)
     lang = request.cookies.get("lang", "en")
-    return templates.TemplateResponse("admin.html", {"request": request, "exams": exams, "lang": lang})
+    return templates.TemplateResponse("admin.html", {
+        "request": request, 
+        "exams": exams, 
+        "lang": lang,
+        "now_utc": datetime.utcnow()
+    })
 
 @app.post("/admin/upload-grades", dependencies=[Depends(csrf_protect)])
 async def upload_grades(request: Request, files: List[UploadFile] = File(...), session: Session = Depends(get_session)):
@@ -318,6 +337,87 @@ async def toggle_submission_route(request: Request, exam_id: int = Form(...), is
         
     toggle_exam_submission(session, exam_id, is_open)
     return RedirectResponse(url="/admin", status_code=303)
+
+@app.post("/admin/exams/deadline", dependencies=[Depends(csrf_protect)])
+async def update_exam_deadline_route(
+    request: Request, 
+    exam_id: int = Form(...), 
+    deadline_str: Optional[str] = Form(None),
+    timezone_offset: int = Form(0), # Minutes: UTC - Local (e.g. Beijing is -480)
+    session: Session = Depends(get_session)
+):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    deadline_dt = None
+    if deadline_str and deadline_str.strip():
+        try:
+            # Parse naive datetime from input (e.g. "2023-10-27T10:00")
+            naive_dt = datetime.fromisoformat(deadline_str)
+            
+            # Adjust to UTC using the offset provided by client
+            # Client offset is usually (UTC - Local) in minutes.
+            # Example: Beijing (UTC+8). Offset = -480.
+            # Local 10:00. UTC = Local + Offset = 10:00 + (-480m) = 10:00 - 8h = 02:00.
+            # Wait, JS getTimezoneOffset() returns (UTC - Local). 
+            # So Local + Offset = UTC. Correct.
+            
+            utc_dt = naive_dt + timedelta(minutes=timezone_offset)
+            deadline_dt = utc_dt
+        except ValueError:
+            pass # Handle invalid format?
+            
+    update_exam_deadline(session, exam_id, deadline_dt)
+    return RedirectResponse(url="/admin", status_code=303)
+
+class ExamStatusUpdate(BaseModel):
+    exam_id: int
+    is_open: bool
+    deadline: Optional[str] = None
+    timezone_offset: int = 0
+
+@app.post("/admin/api/exams/update-status", dependencies=[Depends(csrf_protect)])
+async def update_exam_status_api(
+    request: Request,
+    data: ExamStatusUpdate,
+    session: Session = Depends(get_session)
+):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    exam = session.get(ExamType, data.exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    # Update Open Status
+    exam.is_open_for_submission = data.is_open
+
+    # Update Deadline
+    deadline_dt = None
+    if data.deadline and data.deadline.strip():
+        try:
+            # Parse naive datetime (e.g. "2023-10-27T10:00")
+            naive_dt = datetime.fromisoformat(data.deadline)
+            # Apply offset to get UTC
+            utc_dt = naive_dt + timedelta(minutes=data.timezone_offset)
+            deadline_dt = utc_dt
+        except ValueError:
+            pass # Ignore invalid format
+
+    exam.submission_deadline = deadline_dt
+    session.add(exam)
+    session.commit()
+    session.refresh(exam)
+
+    return JSONResponse({
+        "success": True, 
+        "exam_id": exam.id,
+        "is_open": exam.is_open_for_submission,
+        "deadline": exam.submission_deadline.isoformat() if exam.submission_deadline else None,
+        "is_effectively_open": is_exam_effectively_open(exam)
+    })
 
 @app.post("/admin/update-exams", dependencies=[Depends(csrf_protect)])
 async def update_exams_config(
@@ -499,12 +599,19 @@ async def student_dashboard(request: Request, session: Session = Depends(get_ses
             if not has_grade:
                 # Get status info
                 count, status = get_student_submission_status(session, user['id'], exam.id)
+                
+                # Check Open Status
+                if not is_exam_effectively_open(exam):
+                    # Treat as not open (hidden)
+                    continue
+
                 open_submissions.append({
                     "id": exam.id,
                     "name": exam.name,
                     "attempt_count": count,
                     "status": status,
-                    "can_submit": count < 3 and status != SubmissionStatus.APPROVED
+                    "can_submit": count < 3 and status != SubmissionStatus.APPROVED,
+                    "submission_deadline": exam.submission_deadline
                 })
 
     lang = request.cookies.get("lang", "en")
@@ -536,7 +643,7 @@ async def student_submit_page(request: Request, exam_id: int, session: Session =
         return RedirectResponse("/")
         
     exam = session.get(ExamType, exam_id)
-    if not exam or not exam.is_open_for_submission:
+    if not exam or not is_exam_effectively_open(exam):
         return RedirectResponse("/student")
         
     count, status = get_student_submission_status(session, user['id'], exam_id)
@@ -585,6 +692,10 @@ async def student_submit_action(
         exam = session.get(ExamType, exam_id)
         if not exam:
             return JSONResponse({"success": False, "error": "Exam not found"}, status_code=404)
+            
+        # Check Deadline/Open Status
+        if not is_exam_effectively_open(exam):
+             return JSONResponse({"success": False, "error": "Submission is closed"}, status_code=400)
             
         # Read image
         content = await image.read()
