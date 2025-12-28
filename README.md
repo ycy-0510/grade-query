@@ -18,6 +18,24 @@ A FastAPI-based high school grade query system with distinct roles for Students 
 
 -   Docker & Docker Compose
 -   Google Cloud Console Project (for OAuth credentials)
+-   [uv](https://docs.astral.sh/uv/) (Dependency Manager)
+
+## Development Setup
+
+1.  **Install dependencies**:
+    ```bash
+    uv sync
+    ```
+
+2.  **Activate virtual environment**:
+    ```bash
+    source .venv/bin/activate
+    ```
+
+3.  **Run locally**:
+    ```bash
+    uvicorn main:app --reload
+    ```
 
 ## Quick Start
 

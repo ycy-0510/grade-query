@@ -1,0 +1,22 @@
+[project]
+name = "grade-query-system"
+version = "0.1.0"
+description = "A FastAPI-based high school grade query system with distinct roles for Students and Admins, powered by Google OAuth."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "authlib>=1.6.6",
+    "fastapi>=0.128.0",
+    "google-genai>=1.56.0",
+    "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.6",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.3",
+    "pillow>=12.0.0",
+    "pymysql>=1.1.2",
+    "python-multipart>=0.0.21",
+    "sqlmodel>=0.0.30",
+    "starlette>=0.50.0",
+    "uvicorn>=0.40.0",
+]
