@@ -34,7 +34,7 @@ A FastAPI-based high school grade query system with distinct roles for Students 
 
 3.  **Run locally**:
     ```bash
-    uvicorn main:app --reload
+    uvicorn app.main:app --reload
     ```
 
 ## Quick Start

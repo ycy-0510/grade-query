@@ -1,5 +1,5 @@
 from sqlmodel import Session, select, delete
-from models import User, ExamType, Score, UserRole, SubmissionLog, SubmissionStatus, LoginLog
+from app.models import User, ExamType, Score, UserRole, SubmissionLog, SubmissionStatus, LoginLog
 import pandas as pd
 from typing import List, Dict, Any, Tuple, Optional
 import json
