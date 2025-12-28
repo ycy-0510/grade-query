@@ -9,7 +9,7 @@ def delete_exam(session: Session, exam_id: int):
     # Delete associated scores and submissions first (cascade usually handles this if configured, but let's be safe)
     session.exec(delete(Score).where(Score.exam_type_id == exam_id))
     session.exec(delete(SubmissionLog).where(SubmissionLog.exam_type_id == exam_id))
-    
+
     exam = session.get(ExamType, exam_id)
     if exam:
         session.delete(exam)
@@ -55,36 +55,36 @@ def get_student_submission_status(session: Session, user_id: int, exam_id: int):
     Returns (attempt_count, current_status)
     """
     submissions = session.exec(select(SubmissionLog).where(
-        SubmissionLog.user_id == user_id, 
+        SubmissionLog.user_id == user_id,
         SubmissionLog.exam_type_id == exam_id
     ).order_by(SubmissionLog.last_attempt_time.desc())).all()
-    
+
     # Calculate total attempts (count of logs? or one log object per exam?)
-    # Plan says: "Track attempts... Fields: attempt_count". 
+    # Plan says: "Track attempts... Fields: attempt_count".
     # Let's assume one log record PER attempt if we want history, or one record per user-exam pair updated.
-    # The models.py definition allows multiple logs. Let's append logs. 
-    # Actually, simpler model: One row per attempt. 
+    # The models.py definition allows multiple logs. Let's append logs.
+    # Actually, simpler model: One row per attempt.
     # Or strict count: Query count of rows.
-    
+
     # BUT wait, the plan implies we want to enforce 3 attempts.
     # Let's count how many logs exist for this user+exam.
-    
+
     count = len(submissions)
-    
-    
+
+
     # Check if any is approved
     is_approved = any(s.status == SubmissionStatus.APPROVED for s in submissions)
     status = SubmissionStatus.APPROVED if is_approved else SubmissionStatus.PENDING
     if count > 0 and not is_approved:
         # Determine strict status from last log
         status = submissions[0].status
-        
+
     # Check Deadline
     exam = session.get(ExamType, exam_id)
     if exam and exam.submission_deadline and datetime.utcnow() > exam.submission_deadline:
         # If deadline passed, we can mark as effectively closed/rejected if not approved
         # But we don't change the DB status, just return a "Closed" indicator?
-        # The function returns (count, status). 
+        # The function returns (count, status).
         # The CALLER checks if it can submit.
         # So we don't need to change return value, but we might want to check this in 'can_submit' logic elsewhere.
         pass
@@ -110,33 +110,33 @@ def process_excel_upload(file_obj, session: Session) -> Dict[str, int]:
     # Fix for SpooledTemporaryFile seekable error
     content = file_obj.read()
     df = pd.read_excel(BytesIO(content))
-    
+
     # Clean column names
     df.columns = [str(c).lower().strip().replace(" ", "_") for c in df.columns]
-    
+
     # 1. Identify Exam Columns (Exclude seat_number/Student Name/etc if any, identifying strict columns starting from 2nd)
     # Spec says: Col 1: seat_number, Col 2+: Exam Names.
     # Let's trust spec strictly. df.iloc[:, 0] is seat_number. df.iloc[:, 1:] are exams.
-    
+
     exam_columns = df.columns[1:]
     stats = {"created_exams": 0, "processed_scores": 0, "errors": 0}
-    
+
     # 2. Ensure Exams Exist
     exam_name_to_id = {}
     for exam_name in exam_columns:
         # Check if exists
         statement = select(ExamType).where(ExamType.name == exam_name)
         exam_type = session.exec(statement).first()
-        
+
         if not exam_type:
             exam_type = ExamType(name=exam_name, is_mandatory=False)
             session.add(exam_type)
             session.commit()
             session.refresh(exam_type)
             stats["created_exams"] += 1
-        
+
         exam_name_to_id[exam_name] = exam_type.id
-    
+
     # 3. Iterate Rows
     for index, row in df.iterrows():
         raw_val = row.iloc[0]
@@ -144,22 +144,22 @@ def process_excel_upload(file_obj, session: Session) -> Dict[str, int]:
         # Handle cases where pandas reads integers as floats (e.g., "1.0" -> "1")
         if seat_num.endswith(".0"):
             seat_num = seat_num[:-2]
-        
+
         # Find user by seat_number
         statement = select(User).where(User.seat_number == seat_num)
         user = session.exec(statement).first()
-        
+
         if not user:
-            # Skip if user doesn't exist? Or maybe create placeholder? 
+            # Skip if user doesn't exist? Or maybe create placeholder?
             # Spec says: "Mapping: Match Row's seat_number to User.id" (actually seat number field).
             # If user not found, we can't add scores.
             print(f"User with seat number {seat_num} not found. Skipping.")
             stats["errors"] += 1
             continue
-            
+
         for exam_name in exam_columns:
             val = row[exam_name]
-            
+
             # Validation: Numeric check
             try:
                 if pd.isna(val):
@@ -168,128 +168,152 @@ def process_excel_upload(file_obj, session: Session) -> Dict[str, int]:
             except (ValueError, TypeError):
                 # "Abs", "N/A", etc.
                 continue
-            
+
             # Update/Insert Score
             # Check if score exists for this user + exam
             exam_id = exam_name_to_id[exam_name]
             score_stmt = select(Score).where(Score.user_id == user.id, Score.exam_type_id == exam_id)
             existing_score = session.exec(score_stmt).first()
-            
+
             if existing_score:
                 existing_score.score = score_val
                 session.add(existing_score)
             else:
                 new_score = Score(user_id=user.id, exam_type_id=exam_id, score=score_val)
                 session.add(new_score)
-            
+
             stats["processed_scores"] += 1
-            
+
     session.commit()
     return stats
 
-def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
+def _calculate_average_score(scores_map: Dict[int, float], exams: List[ExamType]) -> Dict[str, Any]:
     """
-    Implements the Top 20 Rule.
-    - Mandatory exams: Must be included. If missing, count as 0.
-    - Optional exams: Only Top N used to fill up to 20 slots.
+    Pure logic for calculating Top 20 average.
+    Returns: {
+        "average": float,
+        "exam_count": int,
+        "valid_exam_count": int,
+        "details": List[Dict] (basic info: exam_id, exam_name, score, is_mandatory, included, submission_deadline)
+    }
     """
-    user = session.get(User, user_id)
-    if not user:
-        return {}
-        
-    # 1. Fetch All Exams and User's Scores
-    all_exams = get_all_exams(session)
-    scores = session.exec(select(Score).where(Score.user_id == user_id)).all()
-    score_map = {s.exam_type_id: s.score for s in scores}
-    
     mandatory_items = []
     optional_items = []
-    
+
     formatted_rows = []
-    
-    for exam in all_exams:
-        score_val = score_map.get(exam.id) # Float or None
-        
-        # Check submission eligibility
-        can_submit = False
-        if is_exam_effectively_open(exam) and score_val is None:
-             count, status = get_student_submission_status(session, user_id, exam.id)
-             if count < 3 and status != SubmissionStatus.APPROVED:
-                 can_submit = True
+    valid_exam_count = 0
+
+    for exam in exams:
+        score_val = scores_map.get(exam.id) # Float or None
+
+        if score_val is not None and isinstance(score_val, (int, float)) and score_val > 0:
+            valid_exam_count += 1
 
         item = {
             "exam_id": exam.id,
             "exam_name": exam.name,
-            "score": score_val, # For Display (None becomes "-")
+            "score": score_val,
             "is_mandatory": exam.is_mandatory,
             "included": False,
-            "can_submit": can_submit,
             "submission_deadline": exam.submission_deadline
         }
-        
+
         formatted_rows.append(item)
-        
+
         # Calculation Logic
-        # If mandatory: Always included. If None -> 0.0
         if exam.is_mandatory:
+            # Mandatory: Always included. If None -> 0.0
             calc_val = score_val if score_val is not None else 0.0
             mandatory_items.append({
                 "score": calc_val,
                 "ref": item # Link back to update 'included'
             })
         else:
-            # If optional: Only include if it has a score
+            # Optional: Only include if it has a score
             if score_val is not None:
                 optional_items.append({
                     "score": score_val,
                     "ref": item
                 })
-        
-    # Logic
-    # 3. Select ALL Mandatory
+
+    # Select ALL Mandatory
     selected_scores = []
     for m_item in mandatory_items:
         m_item["ref"]["included"] = True
         selected_scores.append(m_item["score"])
-        
-    # 4. Calculate remaining slots
+
+    # Select Top Slots from Optional
     slots_needed = 20 - len(mandatory_items)
-    
-    # 5. Select Top Slots from Optional
+
     if slots_needed > 0:
         # Sort optionals by score descending
         optional_items.sort(key=lambda x: x["score"], reverse=True)
         top_optionals = optional_items[:slots_needed]
-        
+
         for o_item in top_optionals:
             o_item["ref"]["included"] = True
             selected_scores.append(o_item["score"])
-            
+
     # Calculate Average
     effective_count = len(selected_scores)
     total_score = sum(selected_scores)
-    
-    # Divisor is max(20, effective_count) to handle cases where we have > 20 mandatory
+
+    # Divisor is max(20, effective_count)
     divisor = max(20, effective_count)
-    
+
     if divisor == 0:
         average = 0.0
     else:
         average = total_score / divisor
-        
-    # Calculate valid exams count (> 0)
-    valid_exam_count = 0
-    for s in scores:
-        if isinstance(s.score, (int, float)) and s.score > 0:
-            valid_exam_count += 1
 
     return {
-        "user_name": user.name,
-        "seat_number": user.seat_number,
         "average": round(average, 2),
         "exam_count": len(selected_scores),
         "valid_exam_count": valid_exam_count,
         "details": formatted_rows
+    }
+
+def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
+    """
+    Implements the Top 20 Rule.
+    Wrapper around _calculate_average_score that also handles 'can_submit' logic which requires DB access.
+    """
+    user = session.get(User, user_id)
+    if not user:
+        return {}
+
+    # 1. Fetch All Exams and User's Scores
+    all_exams = get_all_exams(session)
+    scores = session.exec(select(Score).where(Score.user_id == user_id)).all()
+    score_map = {s.exam_type_id: s.score for s in scores}
+
+    # 2. Calculate Stats
+    report = _calculate_average_score(score_map, all_exams)
+
+    # 3. Enrich details with 'can_submit'
+    # This part requires DB access for SubmissionLog, so we do it here.
+    for item in report["details"]:
+        can_submit = False
+        score_val = item["score"]
+
+        # Check submission eligibility
+        # Find exam object
+        exam = next((e for e in all_exams if e.id == item["exam_id"]), None)
+
+        if exam and is_exam_effectively_open(exam) and score_val is None:
+             count, status = get_student_submission_status(session, user_id, exam.id)
+             if count < 3 and status != SubmissionStatus.APPROVED:
+                 can_submit = True
+
+        item["can_submit"] = can_submit
+
+    return {
+        "user_name": user.name,
+        "seat_number": user.seat_number,
+        "average": report["average"],
+        "exam_count": report["exam_count"],
+        "valid_exam_count": report["valid_exam_count"],
+        "details": report["details"]
     }
 
 def process_student_upload(file_obj, session: Session) -> Dict[str, int]:
@@ -303,12 +327,12 @@ def process_student_upload(file_obj, session: Session) -> Dict[str, int]:
     # Read into memory first.
     content = file_obj.read()
     df = pd.read_excel(BytesIO(content))
-    
+
     # Normalize headers
     df.columns = [str(c).lower().strip().replace(" ", "_") for c in df.columns]
-    
+
     stats = {"created": 0, "updated": 0, "errors": 0}
-    
+
     required_cols = ['seat_number', 'email', 'name']
     for col in required_cols:
         if col not in df.columns:
@@ -329,14 +353,14 @@ def process_student_upload(file_obj, session: Session) -> Dict[str, int]:
             seat_num = str(raw_seat).strip()
             if seat_num.endswith(".0"):
                 seat_num = seat_num[:-2]
-                
+
             email = str(row['email']).strip()
             name = str(row['name']).strip()
-            
+
             # Check if user exists by email (unique key)
             statement = select(User).where(User.email == email)
             user = session.exec(statement).first()
-            
+
             if user:
                 user.seat_number = seat_num
                 user.name = name
@@ -350,7 +374,7 @@ def process_student_upload(file_obj, session: Session) -> Dict[str, int]:
         except Exception as e:
             print(f"Error processing row {index}: {e}")
             stats["errors"] += 1
-            
+
     session.commit()
     return stats
 
@@ -362,21 +386,21 @@ def get_score_matrix(session: Session):
     - score_map: Dict[(user_id, exam_id), float]
     """
     students = session.exec(select(User).where(User.role == UserRole.STUDENT)).all()
-    
+
     def try_int(s):
         try:
             return int(s)
         except:
             return 999999
-            
+
     students.sort(key=lambda u: try_int(u.seat_number))
     exams = get_all_exams(session)
     scores = session.exec(select(Score)).all()
-    
+
     score_map = {}
     for s in scores:
         score_map[(s.user_id, s.exam_type_id)] = s.score
-        
+
     return students, exams, score_map
 
 def bulk_update_scores(form_data: dict, session: Session):
@@ -384,28 +408,28 @@ def bulk_update_scores(form_data: dict, session: Session):
     Parse form keys 'score_{user_id}_{exam_id}' and update.
     """
     updated_count = 0
-    
+
     # Pre-fetch all scores to minimize queries? Or just upsert.
     # For simplicity, loop and upsert. Can optimize later.
-    
+
     for key, value in form_data.items():
         if key.startswith("score_"):
             parts = key.split("_")
             if len(parts) == 3:
                 user_id = int(parts[1])
                 exam_id = int(parts[2])
-                
+
                 try:
                     if value == "":
                         continue # Ignore empty strings
                     score_val = float(value)
                 except (ValueError, TypeError):
                     continue # Skip invalid inputs
-                
+
                 # Check exist
                 stmt = select(Score).where(Score.user_id == user_id, Score.exam_type_id == exam_id)
                 existing = session.exec(stmt).first()
-                
+
                 if existing:
                     if existing.score != score_val:
                         existing.score = score_val
@@ -415,7 +439,7 @@ def bulk_update_scores(form_data: dict, session: Session):
                     new_sc = Score(user_id=user_id, exam_type_id=exam_id, score=score_val)
                     session.add(new_sc)
                     updated_count += 1
-                    
+
     session.commit()
     return updated_count
 
@@ -427,7 +451,7 @@ def export_db_to_json(session: Session) -> Dict[str, Any]:
     exams = session.exec(select(ExamType)).all()
     scores = session.exec(select(Score)).all()
     logs = session.exec(select(SubmissionLog)).all()
-    
+
     data = {
         "users": [u.model_dump(mode='json') for u in users],
         "exams": [e.model_dump(mode='json') for e in exams],
@@ -441,7 +465,7 @@ def import_db_from_json(data: Dict[str, Any], session: Session) -> Dict[str, Any
     Imports data from dictionary. WARNING: Deletes existing data.
     """
     stats = {"users": 0, "exams": 0, "scores": 0, "logs": 0, "errors": 0}
-    
+
     try:
         # 1. Clear existing data
         # Order matters due to foreign keys: Log/Score -> (User, ExamType)
@@ -450,7 +474,7 @@ def import_db_from_json(data: Dict[str, Any], session: Session) -> Dict[str, Any
         session.exec(delete(User))
         session.exec(delete(ExamType))
         session.commit()
-        
+
         # 2. Import Users
         users_data = data.get("users", [])
         for u_data in users_data:
@@ -459,26 +483,26 @@ def import_db_from_json(data: Dict[str, Any], session: Session) -> Dict[str, Any
             user = User.model_validate(u_data)
             session.add(user)
             stats["users"] += 1
-            
+
         # 3. Import ExamTypes
         exams_data = data.get("exams", [])
         for e_data in exams_data:
             exam = ExamType.model_validate(e_data)
             session.add(exam)
             stats["exams"] += 1
-            
+
         # Commit users and exams first so IDs exist for scores/logs
-        # We need to ensure we insert with explicit IDs. 
+        # We need to ensure we insert with explicit IDs.
         # SQLModel/SQLAlchemy usually allows inserting explicit IDs.
         session.commit()
-        
+
         # 4. Import Scores
         scores_data = data.get("scores", [])
         for s_data in scores_data:
             score = Score.model_validate(s_data)
             session.add(score)
             stats["scores"] += 1
-            
+
         # 5. Import Logs
         logs_data = data.get("logs", [])
         for l_data in logs_data:
@@ -487,68 +511,83 @@ def import_db_from_json(data: Dict[str, Any], session: Session) -> Dict[str, Any
             stats["logs"] += 1
 
         session.commit()
-        
+
     except Exception as e:
         session.rollback()
         stats["errors"] += 1
         stats["error_message"] = str(e)
         raise e
-        
+
     return stats
 
 def generate_grades_excel(session: Session):
     """
     Generates an Excel file with all student grades and their calculated Top 20 average.
     Returns BytesIO object.
+    Optimized to use Bulk Fetching (O(1) queries) instead of O(N).
     """
     from io import BytesIO
-    
-    # Get all students
-    students = session.exec(select(User).where(User.role == UserRole.STUDENT)).all()
-    students.sort(key=lambda u: int(u.seat_number) if u.seat_number and u.seat_number.isdigit() else 999999)
-    
-    # Get all exams for columns headers (sorted by Type/Name)
-    all_exams = get_all_exams(session)
-    
+
+    # 1. Fetch all data in bulk
+    students, exams, all_scores_map = get_score_matrix(session)
+
     data = []
-    
+
     for student in students:
-        # Calculate grade report
-        # Note: This executes a query per student. Acceptable for typical school sizes.
-        report = calculate_student_grades(student.id, session)
-        
+        # Construct score map for this student
+        # all_scores_map key is (user_id, exam_id)
+
+        student_scores = {}
+        # Iterate exams to fill map? Or filter map?
+        # Iterating exams is safer as we need to pass strict map to _calculate_average_score
+
+        # Optimization: Filter map for this student is tricky if map is huge.
+        # But get_score_matrix returns a dict. Iterating dict is O(S).
+        # Better: iterate through known exams for this student?
+        # We don't know which exams the student has.
+
+        # Actually, let's just loop over exams and check the map.
+        for exam in exams:
+            val = all_scores_map.get((student.id, exam.id))
+            if val is not None:
+                student_scores[exam.id] = val
+
+        # Calculate Logic (Pure CPU)
+        report = _calculate_average_score(student_scores, exams)
+
         row = {
             "Seat Number": student.seat_number,
             "Name": student.name,
             "Top 20 Avg": report.get("average", 0.0)
         }
-        
+
         # Map exam name to score
-        score_map = {item['exam_name']: item['score'] for item in report.get('details', [])}
-        
-        for exam in all_exams:
-            row[exam.name] = score_map.get(exam.name, None)
-            
+        # details has {exam_name: ..., score: ...}
+        row_score_map = {item['exam_name']: item['score'] for item in report.get('details', [])}
+
+        for exam in exams:
+            row[exam.name] = row_score_map.get(exam.name, None)
+
         data.append(row)
-        
+
     df = pd.DataFrame(data)
-    
+
     # Reorder columns: Seat, Name, Avg, ...Exams
     # Ensure all columns exist in df (in case data is empty)
     if not data:
         # Create empty df with columns
-        cols = ["Seat Number", "Name", "Top 20 Avg"] + [e.name for e in all_exams]
+        cols = ["Seat Number", "Name", "Top 20 Avg"] + [e.name for e in exams]
         df = pd.DataFrame(columns=cols)
     else:
-        cols = ["Seat Number", "Name", "Top 20 Avg"] + [e.name for e in all_exams]
-        # Filter/Order columns. columns that might not exist in row if data was sparse? 
+        cols = ["Seat Number", "Name", "Top 20 Avg"] + [e.name for e in exams]
+        # Filter/Order columns. columns that might not exist in row if data was sparse?
         # But we iterated all_exams to build row, so they exist.
         df = df[cols]
-    
+
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name="Grades")
-        
+
     output.seek(0)
     return output
 
@@ -565,18 +604,18 @@ def get_submission_logs(session: Session, user_id: Optional[int] = None, limit: 
     Fetches submission logs.
     If user_id is provided, filters by that user.
     """
-    # Import here to avoid circulars if any, though likely fine at top. 
+    # Import here to avoid circulars if any, though likely fine at top.
     # But safer since we are appending at end.
-    
+
     query = select(SubmissionLog, User, ExamType).join(User).join(ExamType)
-    
+
     if user_id:
         query = query.where(SubmissionLog.user_id == user_id)
-        
+
     query = query.order_by(SubmissionLog.last_attempt_time.desc()).limit(limit)
-    
+
     results = session.exec(query).all()
-    
+
     logs = []
     for log, user, exam in results:
         # Parse JSON if possible to get clean reason
@@ -589,7 +628,7 @@ def get_submission_logs(session: Session, user_id: Optional[int] = None, limit: 
                 confidence = data.get("confidence", 0)
             except:
                 pass
-                
+
         logs.append({
             "id": log.id,
             "time": log.last_attempt_time,
@@ -601,7 +640,7 @@ def get_submission_logs(session: Session, user_id: Optional[int] = None, limit: 
             "raw_json": log.ai_response_json,
             "attempt_count": log.attempt_count
         })
-        
+
     return logs
 
 from datetime import datetime, timedelta
