@@ -627,3 +627,18 @@ def cleanup_old_login_logs(session: Session, retention_days: int = 3):
 
 def get_login_logs(session: Session, limit: int = 100):
     return session.exec(select(LoginLog).order_by(LoginLog.login_time.desc()).limit(limit)).all()
+
+def get_all_students(session: Session) -> List[User]:
+    """
+    Returns all users with role='student', sorted by seat number.
+    """
+    students = session.exec(select(User).where(User.role == UserRole.STUDENT)).all()
+
+    def try_int(s):
+        try:
+            return int(s)
+        except:
+            return 999999
+
+    students.sort(key=lambda u: try_int(u.seat_number))
+    return students

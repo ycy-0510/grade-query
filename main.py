@@ -26,9 +26,13 @@ from crud import (
     process_student_upload, get_score_matrix, bulk_update_scores, export_db_to_json, 
     import_db_from_json, generate_grades_excel, delete_exam, toggle_exam_submission,
     create_submission_log, get_student_submission_status, get_submission_logs, get_all_exams,
-    create_login_log, cleanup_old_login_logs, get_login_logs, update_exam_deadline, is_exam_effectively_open
+    create_login_log, cleanup_old_login_logs, get_login_logs, update_exam_deadline, is_exam_effectively_open,
+    get_all_students
 )
 from i18n import TRANSLATIONS
+from fastapi import BackgroundTasks
+from email_service import generate_pdf, send_grade_email
+import asyncio
 
 # Disable default OpenAPI
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -269,10 +273,12 @@ async def admin_dashboard(request: Request, session: Session = Depends(get_sessi
         return RedirectResponse("/")
     
     exams = get_all_exams(session)
+    students = get_all_students(session) # Fetch all students for the email modal
     lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("admin.html", {
         "request": request, 
         "exams": exams, 
+        "students": students,
         "lang": lang,
         "now_utc": datetime.utcnow()
     })
@@ -541,6 +547,72 @@ async def export_grades_excel(request: Request, session: Session = Depends(get_s
         'Content-Disposition': 'attachment; filename="student_grades.xlsx"'
     }
     return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+async def process_grade_emails(student_ids: List[int], lang: str):
+    """
+    Background task to process emails.
+    Re-creates session inside task to be thread-safe/independent.
+    """
+    from database import engine
+    from sqlmodel import Session
+
+    with Session(engine) as session:
+        for student_id in student_ids:
+            try:
+                # 1. Get User
+                user = session.get(User, student_id)
+                if not user or not user.email:
+                    print(f"Skipping student {student_id}: No user or email found.")
+                    continue
+
+                # 2. Calculate Grades
+                report = calculate_student_grades(user.id, session)
+
+                # 3. Generate PDF (Offload to thread to avoid blocking event loop)
+                pdf_bytes = await asyncio.to_thread(generate_pdf, report, lang)
+
+                # 4. Send Email
+                success = await send_grade_email(user.email, user.name, pdf_bytes, lang)
+
+                if success:
+                    print(f"Successfully sent grade report to {user.email}")
+
+                # 5. Rate Limit (5 per second = 0.2s delay)
+                await asyncio.sleep(0.2)
+
+            except Exception as e:
+                print(f"Error processing email for student {student_id}: {e}")
+
+@app.post("/admin/send-grades", dependencies=[Depends(csrf_protect)])
+async def send_grades_route(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    student_ids: List[int] = Form(...),
+    language: str = Form("en"),
+    session: Session = Depends(get_session)
+):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    if not student_ids:
+        # Redirect with error?
+        pass
+
+    # Trigger Background Task
+    background_tasks.add_task(process_grade_emails, student_ids, language)
+
+    exams = get_all_exams(session)
+    students = get_all_students(session)
+
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "exams": exams,
+        "students": students,
+        "error": f"Started sending emails to {len(student_ids)} students.", # Using 'error' slot for success msg for now or add 'success' slot in template
+        "lang": request.cookies.get("lang", "en"),
+        "now_utc": datetime.utcnow()
+    })
 
 @app.get("/admin/logs", response_class=HTMLResponse)
 async def admin_logs(request: Request, session: Session = Depends(get_session)):

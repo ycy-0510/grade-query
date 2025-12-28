@@ -20,6 +20,14 @@
             {{ translations[lang]['upload_data_btn'] }}
         </button>
 
+        <button type="button" onclick="openEmailModal()"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Send Grades
+        </button>
+
         <a href="/admin/logs"
             class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24"
@@ -255,6 +263,22 @@
     function closeUploadModal() {
         document.getElementById('uploadModal').classList.add('hidden');
     }
+
+    // --- Email Modal Logic ---
+    function openEmailModal() {
+        document.getElementById('emailModal').classList.remove('hidden');
+    }
+
+    function closeEmailModal() {
+        document.getElementById('emailModal').classList.add('hidden');
+    }
+
+    function toggleAllStudents(source) {
+        checkboxes = document.getElementsByName('student_ids');
+        for(var i=0, n=checkboxes.length;i<n;i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
 </script>
 
 
@@ -324,6 +348,73 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div id="emailModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeEmailModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b border-gray-200">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Send Grade Emails</h3>
+                <button type="button" onclick="closeEmailModal()" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form action="/admin/send-grades" method="post" class="p-6">
+                <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
+
+                <!-- Language Selector -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Language</label>
+                    <div class="flex gap-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="language" value="en" checked class="form-radio text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">English</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="language" value="zh" class="form-radio text-indigo-600">
+                            <span class="ml-2 text-sm text-gray-700">Chinese (中文)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Student List -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Select Students</label>
+                        <label class="inline-flex items-center text-xs text-indigo-600 font-bold cursor-pointer">
+                            <input type="checkbox" onclick="toggleAllStudents(this)" checked class="form-checkbox h-3 w-3 mr-1 text-indigo-600 rounded">
+                            Select All
+                        </label>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg max-h-60 overflow-y-auto bg-gray-50 p-2 space-y-1">
+                        {% for student in students %}
+                        <div class="flex items-center p-2 hover:bg-white rounded transition-colors">
+                            <input type="checkbox" name="student_ids" value="{{ student.id }}" checked class="form-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                            <span class="ml-3 text-sm text-gray-700 font-medium w-16">{{ student.seat_number }}</span>
+                            <span class="ml-2 text-sm text-gray-600 truncate">{{ student.name }}</span>
+                            <span class="ml-auto text-xs text-gray-400">{{ student.email }}</span>
+                        </div>
+                        {% endfor %}
+                        {% if not students %}
+                        <div class="text-center py-4 text-sm text-gray-400 italic">No students found.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
+                    Send Emails
+                </button>
+            </form>
         </div>
     </div>
 </div>

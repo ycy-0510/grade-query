@@ -139,7 +139,8 @@ TRANSLATIONS = {
         "time_remaining_pattern": "{} hours {} minutes remaining",
         "time_remaining_pattern_min": "{} minutes remaining",
         "time_hour": "hours",
-        "time_minute": "minutes"
+        "time_minute": "minutes",
+        "valid_exam_count": "Valid Exam Count"
     },
     "zh": {
         "title": "成績查詢系統",
@@ -280,6 +281,7 @@ TRANSLATIONS = {
         "time_remaining_pattern": "剩餘 {0} 小時 {1} 分鐘",
         "time_remaining_pattern_min": "剩餘 {0} 分鐘",
         "time_hour": "小時",
-        "time_minute": "分鐘"
+        "time_minute": "分鐘",
+        "valid_exam_count": "有效考試數量"
     }
 }

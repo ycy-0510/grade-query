@@ -17,7 +17,7 @@ services:
       - ./mysql_data:/var/lib/mysql
 
   web:
-    image: ycy10/grade-system:latest
+    build: .
     command: uvicorn main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
@@ -34,6 +34,15 @@ services:
       GEMINI_MODEL: ${GEMINI_MODEL}
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+      # Email Configuration
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_SERVER: ${MAIL_SERVER}
+      MAIL_STARTTLS: ${MAIL_STARTTLS}
+      MAIL_SSL_TLS: ${MAIL_SSL_TLS}
     depends_on:
       - db
     restart: unless-stopped
