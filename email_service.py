@@ -1,11 +1,7 @@
 import os
-import io
-import asyncio
-from typing import List, Optional
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML, CSS
+from weasyprint import HTML
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
-from pydantic import EmailStr
 from datetime import datetime
 
 from i18n import TRANSLATIONS
