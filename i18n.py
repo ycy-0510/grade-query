@@ -129,7 +129,7 @@ TRANSLATIONS = {
         "name_header": "Name",
         "role_header": "Role",
         "ip_address_header": "IP Address",
-        "time_utc_header": "Time (UTC)"
+        "time_header": "Time"
     },
     "zh": {
         "title": "成績查詢系統",
@@ -260,6 +260,6 @@ TRANSLATIONS = {
         "name_header": "姓名",
         "role_header": "角色",
         "ip_address_header": "IP 位址",
-        "time_utc_header": "時間 (UTC)"
+        "time_header": "時間"
     }
 }

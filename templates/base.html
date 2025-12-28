@@ -127,8 +127,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.local-time').forEach(el => {
-                const utcTime = el.getAttribute('data-utc');
+                let utcTime = el.getAttribute('data-utc');
                 if (utcTime) {
+                    // if it doesn't end with Z and doesn't look like it has an offset (+00:00 or -00:00)
+                    // we assume it is a naive UTC string from backend and append Z
+                    if (!utcTime.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(utcTime)) {
+                        utcTime += 'Z';
+                    }
                     const date = new Date(utcTime);
                     el.textContent = date.toLocaleString();
                 }
