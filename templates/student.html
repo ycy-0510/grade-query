@@ -23,209 +23,227 @@
     </div>
 </div>
 
-<!-- Tab Navigation -->
-<div class="border-b border-slate-200 mb-8">
-    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-        <button onclick="switchTab('grades')" id="tab-btn-grades"
-            class="border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-            {{ translations[lang]['my_grades'] }}
-        </button>
-        <button onclick="switchTab('submit')" id="tab-btn-submit"
-            class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2">
-            {{ translations[lang]['submit_scores'] }}
-            {% if open_submissions %}
-            <span class="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold">{{
-                open_submissions|length
-                }}</span>
-            {% endif %}
-        </button>
-    </nav>
-</div>
+{% if report.valid_exam_count < 20 %} <div
+    class="mb-6 p-4 rounded-xl bg-yellow-50 border border-yellow-100 flex items-start gap-3 shadow-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600 shrink-0" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+    <div>
+        <h4 class="font-bold text-yellow-800">{{ translations[lang]['warning'] }}</h4>
+        <p class="text-sm text-yellow-700 mt-1">
+            {{ translations[lang]['low_exam_count_detail'].format(report.valid_exam_count)|safe }}
+        </p>
+    </div>
+    </div>
+    {% endif %}
 
-<!-- Tab: My Grades -->
-<div id="tab-grades" class="tab-content block animate-fade-in">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Summary Card -->
-        <div class="lg:col-span-1">
-            <div
-                class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-8 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-8 opacity-10">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-32 h-32" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </div>
+    <!-- Tab Navigation -->
+    <div class="border-b border-slate-200 mb-8">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button onclick="switchTab('grades')" id="tab-btn-grades"
+                class="border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                {{ translations[lang]['my_grades'] }}
+            </button>
+            <button onclick="switchTab('submit')" id="tab-btn-submit"
+                class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2">
+                {{ translations[lang]['submit_scores'] }}
+                {% if open_submissions %}
+                <span class="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold">{{
+                    open_submissions|length
+                    }}</span>
+                {% endif %}
+            </button>
+        </nav>
+    </div>
 
-                <div class="relative z-10">
-                    <p class="text-indigo-100 font-medium mb-1">{{ translations[lang]['top_average'] }}</p>
-                    <h1 class="text-5xl font-bold mb-4 tracking-tight">{{ report.average }}</h1>
-                    <div
-                        class="flex items-center gap-2 text-sm text-indigo-100 bg-white/20 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clip-rule="evenodd" />
+    <!-- Tab: My Grades -->
+    <div id="tab-grades" class="tab-content block animate-fade-in">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Summary Card -->
+            <div class="lg:col-span-1">
+                <div
+                    class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-8 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-8 opacity-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-32 h-32" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
-                        <span>{{ translations[lang]['based_on_exams'].format(report.exam_count) }}</span>
+                    </div>
+
+                    <div class="relative z-10">
+                        <p class="text-indigo-100 font-medium mb-1">{{ translations[lang]['top_average'] }}</p>
+                        <h1 class="text-5xl font-bold mb-4 tracking-tight">{{ report.average }}</h1>
+                        <div
+                            class="flex items-center gap-2 text-sm text-indigo-100 bg-white/20 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span>{{ translations[lang]['based_on_exams'].format(report.exam_count) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details Table -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <h4 class="font-bold text-slate-800">{{ translations[lang]['detail_scores'] }}</h4>
+                        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">{{
+                            translations[lang]['top_results_included'] }}</div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['exam_name']
+                                        }}
+                                    </th>
+                                    <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['score'] }}
+                                    </th>
+                                    <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['type'] }}
+                                    </th>
+                                    <th class="px-6 py-3 border-b border-slate-100 text-right">{{
+                                        translations[lang]['status'] }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {% for item in report.details %}
+                                <tr
+                                    class="transition-colors {% if item.included %}bg-green-50/30 hover:bg-green-50/60{% else %}hover:bg-slate-50{% endif %}">
+                                    <td class="px-6 py-3 text-sm font-medium text-slate-800">
+                                        <div class="flex items-center gap-2">
+                                            {{ item.exam_name }}
+                                            {% if item.can_submit %}
+                                            <a href="/student/submit/{{ item.exam_id }}"
+                                                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors">
+                                                {{ translations[lang]['submit_grade'] }}
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td
+                                        class="px-6 py-3 text-sm font-bold {% if item.included %}text-green-700{% else %}text-slate-500{% endif %}">
+                                        {% if item.score is none %}
+                                        -
+                                        {% else %}
+                                        {{ item.score }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-3">
+                                        {% if item.is_mandatory %}
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
+                                            {{ translations[lang]['mandatory'] }}
+                                        </span>
+                                        {% else %}
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">
+                                            {{ translations[lang]['optional'] }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm">
+                                        {% if item.included %}
+                                        <span
+                                            class="inline-flex items-center gap-1.5 text-green-700 font-semibold bg-white border border-green-200 px-2.5 py-0.5 rounded-full shadow-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5"
+                                                viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            {{ translations[lang]['included'] }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-slate-400 italic font-medium">{{ translations[lang]['ignored']
+                                            }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Details Table -->
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h4 class="font-bold text-slate-800">{{ translations[lang]['detail_scores'] }}</h4>
-                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">{{
-                        translations[lang]['top_results_included'] }}</div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold tracking-wider">
-                            <tr>
-                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['exam_name']
-                                    }}
-                                </th>
-                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['score'] }}
-                                </th>
-                                <th class="px-6 py-3 border-b border-slate-100">{{ translations[lang]['type'] }}
-                                </th>
-                                <th class="px-6 py-3 border-b border-slate-100 text-right">{{
-                                    translations[lang]['status'] }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            {% for item in report.details %}
-                            <tr
-                                class="transition-colors {% if item.included %}bg-green-50/30 hover:bg-green-50/60{% else %}hover:bg-slate-50{% endif %}">
-                                <td class="px-6 py-3 text-sm font-medium text-slate-800">
-                                    <div class="flex items-center gap-2">
-                                        {{ item.exam_name }}
-                                        {% if item.can_submit %}
-                                        <a href="/student/submit/{{ item.exam_id }}"
-                                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors">
-                                            {{ translations[lang]['submit_grade'] }}
-                                        </a>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td
-                                    class="px-6 py-3 text-sm font-bold {% if item.included %}text-green-700{% else %}text-slate-500{% endif %}">
-                                    {% if item.score is none %}
-                                    -
-                                    {% else %}
-                                    {{ item.score }}
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-3">
-                                    {% if item.is_mandatory %}
-                                    <span
-                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
-                                        {{ translations[lang]['mandatory'] }}
-                                    </span>
-                                    {% else %}
-                                    <span
-                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">
-                                        {{ translations[lang]['optional'] }}
-                                    </span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-3 text-right text-sm">
-                                    {% if item.included %}
-                                    <span
-                                        class="inline-flex items-center gap-1.5 text-green-700 font-semibold bg-white border border-green-200 px-2.5 py-0.5 rounded-full shadow-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20"
-                                            fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                        {{ translations[lang]['included'] }}
-                                    </span>
-                                    {% else %}
-                                    <span class="text-slate-400 italic font-medium">{{ translations[lang]['ignored']
-                                        }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
 
-<!-- Tab: Submit Scores -->
-<div id="tab-submit" class="tab-content hidden animate-fade-in">
-    {% if open_submissions %}
-    <div>
-        <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            {{ translations[lang]['action_required'] }}
-            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for exam in open_submissions %}
-            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start mb-4">
-                    <h4 class="font-bold text-slate-800 text-lg">{{ exam.name }}</h4>
-                    {% if exam.status == 'rejected' %}
-                    <span class="text-xs font-bold bg-red-50 text-red-600 px-2 py-1 rounded-lg">{{
-                        translations[lang]['rejected'] }}</span>
-                    {% elif exam.status == 'pending' %}
-                    <span class="text-xs font-bold bg-yellow-50 text-yellow-600 px-2 py-1 rounded-lg">{{
-                        translations[lang]['pending'] }}</span>
+    <!-- Tab: Submit Scores -->
+    <div id="tab-submit" class="tab-content hidden animate-fade-in">
+        {% if open_submissions %}
+        <div>
+            <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                {{ translations[lang]['action_required'] }}
+                <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for exam in open_submissions %}
+                <div
+                    class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-4">
+                        <h4 class="font-bold text-slate-800 text-lg">{{ exam.name }}</h4>
+                        {% if exam.status == 'REJECTED' %}
+                        <span class="text-xs font-bold bg-red-50 text-red-600 px-2 py-1 rounded-lg">{{
+                            translations[lang]['rejected'] }}</span>
+                        {% elif exam.status == 'PENDING' %}
+                        <span class="text-xs font-bold bg-yellow-50 text-yellow-600 px-2 py-1 rounded-lg">{{
+                            translations[lang]['pending'] }}</span>
+                        {% endif %}
+                    </div>
+
+                    <p class="text-sm text-slate-500 mb-6">{{ translations[lang]['attempts_remaining'].format(3 -
+                        exam.attempt_count) | safe }}</p>
+
+                    {% if exam.can_submit %}
+                    <a href="/student/submit/{{ exam.id }}"
+                        class="block w-full text-center py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm shadow-indigo-200">
+                        {{ translations[lang]['submit_grade'] }}
+                    </a>
+                    {% else %}
+                    <button disabled
+                        class="w-full py-2.5 bg-slate-100 text-slate-400 font-medium rounded-lg cursor-not-allowed">
+                        {{ translations[lang]['submission_closed'] }}
+                    </button>
                     {% endif %}
                 </div>
-
-                <p class="text-sm text-slate-500 mb-6">{{ translations[lang]['attempts_remaining'].format(3 -
-                    exam.attempt_count) | safe }}</p>
-
-                {% if exam.can_submit %}
-                <a href="/student/submit/{{ exam.id }}"
-                    class="block w-full text-center py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm shadow-indigo-200">
-                    {{ translations[lang]['submit_grade'] }}
-                </a>
-                {% else %}
-                <button disabled
-                    class="w-full py-2.5 bg-slate-100 text-slate-400 font-medium rounded-lg cursor-not-allowed">
-                    {{ translations[lang]['submission_closed'] }}
-                </button>
-                {% endif %}
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
+        {% else %}
+        <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-300 mb-4" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-slate-500 font-medium">{{ translations[lang]['all_caught_up'] }}</p>
+        </div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-300 mb-4" fill="none"
-            viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p class="text-slate-500 font-medium">{{ translations[lang]['all_caught_up'] }}</p>
-    </div>
-    {% endif %}
-</div>
 
-<script>
-    function switchTab(tabName) {
-        // Toggle Content
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-        document.getElementById('tab-' + tabName).classList.remove('hidden');
+    <script>
+        function switchTab(tabName) {
+            // Toggle Content
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
 
-        // Toggle Nav Styles
-        document.getElementById('tab-btn-grades').className = tabName === 'grades'
-            ? 'border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors'
-            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors';
+            // Toggle Nav Styles
+            document.getElementById('tab-btn-grades').className = tabName === 'grades'
+                ? 'border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors';
 
-        document.getElementById('tab-btn-submit').className = tabName === 'submit'
-            ? 'border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2'
-            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2';
-    }
-</script>
-{% endblock %}
+            document.getElementById('tab-btn-submit').className = tabName === 'submit'
+                ? 'border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2';
+        }
+    </script>
+    {% endblock %}

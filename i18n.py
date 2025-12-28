@@ -120,7 +120,16 @@ TRANSLATIONS = {
         "confirm": "Confirm",
         "privacy_policy": "Privacy Policy",
         "terms_of_service": "Terms of Service",
-        "login_agreement": "By logging in, you agree to our <a href='/privacy' class='underline hover:text-slate-600'>Privacy Policy</a> and <a href='/tos' class='underline hover:text-slate-600'>Terms of Service</a>."
+        "login_agreement": "By logging in, you agree to our <a href='/privacy' class='underline hover:text-slate-600'>Privacy Policy</a> and <a href='/tos' class='underline hover:text-slate-600'>Terms of Service</a>.",
+        "warning": "Warning",
+        "low_exam_count_detail": "You have fewer than 20 valid exams (Count: <span class=\"font-bold\">{}</span>).<br>According to the rules, missing scores to reach the Top 20 minimum will be <span class=\"font-bold\">counted as 0</span>.",
+        "login_logs_title": "Login Logs",
+        "login_logs_nav": "Login Logs",
+        "email_header": "Email",
+        "name_header": "Name",
+        "role_header": "Role",
+        "ip_address_header": "IP Address",
+        "time_utc_header": "Time (UTC)"
     },
     "zh": {
         "title": "成績查詢系統",
@@ -242,6 +251,15 @@ TRANSLATIONS = {
         "confirm": "確認送出",
         "privacy_policy": "隱私權政策",
         "terms_of_service": "服務條款",
-        "login_agreement": "登入即代表您同意我們的<a href='/privacy' class='underline hover:text-slate-600'>隱私權政策</a>及<a href='/tos' class='underline hover:text-slate-600'>服務條款</a>。"
+        "login_agreement": "登入即代表您同意我們的<a href='/privacy' class='underline hover:text-slate-600'>隱私權政策</a>及<a href='/tos' class='underline hover:text-slate-600'>服務條款</a>。",
+        "warning": "警告",
+        "low_exam_count_detail": "您的有效考試少於 20 次（數量：<span class=\"font-bold\">{}</span>）。<br>根據規則，未達前 20 次最低門檻的缺考分數將<span class=\"font-bold\">以 0 分計算</span>。",
+        "login_logs_title": "登入紀錄",
+        "login_logs_nav": "登入紀錄",
+        "email_header": "Email",
+        "name_header": "姓名",
+        "role_header": "角色",
+        "ip_address_header": "IP 位址",
+        "time_utc_header": "時間 (UTC)"
     }
 }

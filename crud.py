@@ -242,11 +242,18 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
     else:
         average = total_score / divisor
         
+    # Calculate valid exams count (> 0)
+    valid_exam_count = 0
+    for s in scores:
+        if isinstance(s.score, (int, float)) and s.score > 0:
+            valid_exam_count += 1
+
     return {
         "user_name": user.name,
         "seat_number": user.seat_number,
         "average": round(average, 2),
         "exam_count": len(selected_scores),
+        "valid_exam_count": valid_exam_count,
         "details": formatted_rows
     }
 

@@ -34,7 +34,9 @@
                 {% for log in logs %}
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="px-6 py-3 text-sm text-slate-500 whitespace-nowrap">
-                        {{ log.time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        <span class="local-time" data-utc="{{ log.time.isoformat() }}">
+                            {{ log.time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </span>
                     </td>
                     <td class="px-6 py-3 text-sm font-medium text-slate-900">
                         {{ log.exam_name }}
@@ -43,20 +45,20 @@
                         {{ log.attempt_count }}
                     </td>
                     <td class="px-6 py-3 text-sm">
-                        {% if log.status == 'approved' %}
+                        {% if log.status == 'APPROVED' %}
                         <span
                             class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">
-                            {{ log.status }}
+                            {{ log.status.value }}
                         </span>
-                        {% elif log.status == 'rejected' %}
+                        {% elif log.status == 'REJECTED' %}
                         <span
                             class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
-                            {{ log.status }}
+                            {{ log.status.value }}
                         </span>
                         {% else %}
                         <span
                             class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700">
-                            {{ log.status }}
+                            {{ log.status.value }}
                         </span>
                         {% endif %}
                     </td>

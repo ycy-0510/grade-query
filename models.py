@@ -9,9 +9,9 @@ class UserRole(str, Enum):
 from datetime import datetime
 
 class SubmissionStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

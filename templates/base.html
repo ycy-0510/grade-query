@@ -123,6 +123,18 @@
         </div>
     </footer>
 
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.local-time').forEach(el => {
+                const utcTime = el.getAttribute('data-utc');
+                if (utcTime) {
+                    const date = new Date(utcTime);
+                    el.textContent = date.toLocaleString();
+                }
+            });
+        });
+    </script>
 </body>
 <!--Start of Tawk.to Script-->
 <script type="text/javascript">
