@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from typing import List, Optional
@@ -23,7 +23,7 @@ templates = Jinja2Templates(directory="app/templates")
 templates.env.globals['translations'] = TRANSLATIONS
 
 # --- Admin Routes ---
-@router.get("/admin", response_class=JSONResponse)
+@router.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -199,7 +199,7 @@ async def update_exams_config(
     session.commit()
     return RedirectResponse(url="/admin", status_code=303)
 
-@router.get("/admin/scores", response_class=JSONResponse)
+@router.get("/admin/scores", response_class=HTMLResponse)
 async def view_scores(request: Request, session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -296,7 +296,7 @@ async def export_grades_excel(request: Request, session: Session = Depends(get_s
     }
     return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
-@router.get("/admin/logs", response_class=JSONResponse)
+@router.get("/admin/logs", response_class=HTMLResponse)
 async def admin_logs(request: Request, session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
@@ -310,7 +310,7 @@ async def admin_logs(request: Request, session: Session = Depends(get_session)):
         "lang": request.cookies.get("lang", "en")
     })
 
-@router.get("/admin/login-logs", response_class=JSONResponse)
+@router.get("/admin/login-logs", response_class=HTMLResponse)
 async def admin_login_logs(request: Request, session: Session = Depends(get_session)):
     user = request.session.get('user')
     if not user or user['role'] != 'admin':
