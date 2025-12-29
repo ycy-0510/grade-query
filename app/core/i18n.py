@@ -139,7 +139,16 @@ TRANSLATIONS = {
         "time_remaining_pattern": "{} hours {} minutes remaining",
         "time_remaining_pattern_min": "{} minutes remaining",
         "time_hour": "hours",
-        "time_minute": "minutes"
+        "time_minute": "minutes",
+        "send_email_btn": "Send Scores Email",
+        "send_email_title": "Send Grade Reports via Email",
+        "students": "Students",
+        "subject": "Subject",
+        "body": "Body",
+        "send": "Send",
+        "default_email_subject": "Your Grade Report",
+        "default_email_body": "Dear {{name}},\n\nPlease find attached your latest grade report.\n\nBest regards,\nSchool Admin",
+        "name": "Name"
     },
     "zh": {
         "title": "成績查詢系統",
@@ -280,6 +289,15 @@ TRANSLATIONS = {
         "time_remaining_pattern": "剩餘 {0} 小時 {1} 分鐘",
         "time_remaining_pattern_min": "剩餘 {0} 分鐘",
         "time_hour": "小時",
-        "time_minute": "分鐘"
+        "time_minute": "分鐘",
+        "send_email_btn": "寄送成績單 Email",
+        "send_email_title": "透過 Email 寄送成績單",
+        "students": "學生",
+        "subject": "主旨",
+        "body": "內文",
+        "send": "寄送",
+        "default_email_subject": "您的成績單",
+        "default_email_body": "親愛的 {{name}}：\n\n附檔是您最新的成績單，請查收。\n\n祝學業進步，\n教務處",
+        "name": "姓名"
     }
 }

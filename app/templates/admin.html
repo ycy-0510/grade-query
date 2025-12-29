@@ -9,6 +9,16 @@
         <p class="text-slate-500 mt-1">{{ translations[lang]['dashboard_subtitle'] }}</p>
     </div>
     <div class="flex flex-wrap gap-3">
+        <!-- Send Grades Email Button -->
+        <button type="button" onclick="openEmailModal()"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+            </svg>
+            {{ translations[lang]['send_email_btn'] }}
+        </button>
+
         <!-- New Upload Data Button -->
         <button type="button" onclick="openUploadModal()"
             class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg shadow-sm hover:bg-slate-50 transition-all active:scale-95">
@@ -52,8 +62,6 @@
 </div>
 
 <div class="w-full max-w-5xl mx-auto space-y-8">
-    <!-- Right Column content (now main column) -->
-
     <!-- Main Column -->
     <div class="space-y-8">
         <!-- Exam Management -->
@@ -92,29 +100,13 @@
                         {% for exam in exams %}
                         <tr class="hover:bg-slate-50/80 transition-colors">
                             <td class="px-5 py-3 text-sm font-medium text-slate-700">{{ exam.name }}</td>
-
-                            <!-- Mandatory Toggle (Global Form needed for valid state?) -> Actually better to have individual toggles or one form. 
-                                 Previous design was bulk update. Let's keep bulk update for Mandatory, OR switch to individual endpoints.
-                                 Let's stick to the BULK update logic for Mandatory for now to avoid breaking existing flow, 
-                                 BUT simpler UI: Just show Checkbox inside a master form? 
-                                 OR Separate actions. 
-                                 Let's keep the Form wrap for Mandatory, but injecting other buttons inside is messy.
-                                 Better: Row-based actions.
-                            -->
                             <td class="px-5 py-3 text-center">
-                                <!-- Hack: Using a separate small form or just display status? 
-                                     The user wants to MANAGE exams. 
-                                     Let's make Mandatory part of the bulk update at the bottom, 
-                                     and others as individual actions.
-                                -->
                                 <input form="config-form" type="checkbox" name="mandatory_exams" value="{{ exam.id }}"
                                     class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300" {% if
                                     exam.is_mandatory %}checked{% endif %}>
                             </td>
 
                             <td class="px-5 py-3 text-center">
-                                <!-- Unified Status Pill -->
-                                <!-- Logic for initial render -->
                                 {% set is_expired = False %}
                                 {% if exam.submission_deadline and exam.submission_deadline < now_utc %} {% set
                                     is_expired=True %} {% endif %} <button type="button"
@@ -245,8 +237,83 @@
 
 </div>
 
-<script>
 
+<!-- SEND EMAIL MODAL -->
+<div id="emailModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeEmailModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-blue-600 px-4 py-3 sm:px-6 flex justify-between items-center">
+                <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
+                    {{ translations[lang]['send_email_title'] }}
+                </h3>
+                <button type="button" onclick="closeEmailModal()" class="text-blue-200 hover:text-white focus:outline-none">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-4 py-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Left: Student List -->
+                <div class="md:col-span-1 border-r border-slate-200 pr-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-slate-700">{{ translations[lang]['students'] }}</h4>
+                        <div class="space-x-1 text-xs">
+                            <button onclick="toggleAllStudents(true)" class="text-blue-600 hover:underline">All</button>
+                            <span>/</span>
+                            <button onclick="toggleAllStudents(false)" class="text-slate-500 hover:underline">None</button>
+                        </div>
+                    </div>
+                    <div id="student-list-container" class="h-80 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50">
+                        <div class="text-center text-slate-400 py-10">Loading...</div>
+                    </div>
+                    <div class="mt-2 text-xs text-slate-500">
+                        Selected: <span id="selected-count" class="font-bold text-slate-800">0</span>
+                    </div>
+                </div>
+
+                <!-- Right: Email Content -->
+                <div class="md:col-span-2 flex flex-col h-full">
+                    <div class="space-y-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ translations[lang]['subject'] }}</label>
+                            <input type="text" id="email-subject" value="{{ translations[lang]['default_email_subject'] }}"
+                                class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">{{ translations[lang]['body'] }}</label>
+                            <textarea id="email-body" rows="6"
+                                class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 font-mono">{{ translations[lang]['default_email_body'] }}</textarea>
+                            <p class="mt-1 text-xs text-slate-400">Available variables: {{ '{{name}}' }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Progress Log -->
+                    <div id="progress-container" class="hidden flex-1 border border-slate-200 rounded-lg bg-slate-900 text-green-400 font-mono text-xs p-3 overflow-y-auto h-32 mb-4">
+                    </div>
+
+                    <div class="mt-auto flex justify-end gap-3">
+                         <button type="button" onclick="closeEmailModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            {{ translations[lang]['cancel'] }}
+                        </button>
+                        <button type="button" onclick="sendEmails()" id="send-btn"
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            {{ translations[lang]['send'] }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
     // --- Upload Modal Logic ---
     function openUploadModal() {
         document.getElementById('uploadModal').classList.remove('hidden');
@@ -255,6 +322,185 @@
     function closeUploadModal() {
         document.getElementById('uploadModal').classList.add('hidden');
     }
+
+    // --- Email Modal Logic ---
+    let studentsLoaded = false;
+    let studentsData = [];
+
+    function openEmailModal() {
+        document.getElementById('emailModal').classList.remove('hidden');
+        if (!studentsLoaded) {
+            fetchStudents();
+        }
+
+        // Reset Progress
+        document.getElementById('progress-container').classList.add('hidden');
+        document.getElementById('progress-container').innerHTML = '';
+        document.getElementById('send-btn').disabled = false;
+
+        // Check URL for auth success
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('email_auth') === 'success') {
+            // Maybe show a toast?
+            // Remove param
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    function closeEmailModal() {
+        document.getElementById('emailModal').classList.add('hidden');
+    }
+
+    async function fetchStudents() {
+        try {
+            const res = await fetch('/admin/api/students');
+            if (!res.ok) throw new Error("Failed to load");
+            studentsData = await res.json();
+            renderStudents();
+            studentsLoaded = true;
+        } catch (e) {
+            document.getElementById('student-list-container').innerHTML = '<div class="text-red-500 text-center text-sm">Error loading students</div>';
+        }
+    }
+
+    function renderStudents() {
+        const container = document.getElementById('student-list-container');
+        if (studentsData.length === 0) {
+            container.innerHTML = '<div class="text-slate-400 text-center text-sm p-4">No students found</div>';
+            return;
+        }
+
+        let html = '';
+        studentsData.forEach(s => {
+            html += `
+            <div class="flex items-center gap-2 py-1.5 px-2 hover:bg-slate-100 rounded">
+                <input type="checkbox" value="${s.id}" class="student-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" onchange="updateSelectedCount()" checked>
+                <div class="min-w-0">
+                    <div class="text-sm font-medium text-slate-800 truncate">${s.name}</div>
+                    <div class="text-xs text-slate-500 truncate">${s.seat_number} - ${s.email}</div>
+                </div>
+            </div>
+            `;
+        });
+        container.innerHTML = html;
+        updateSelectedCount();
+    }
+
+    function toggleAllStudents(checked) {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = checked);
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const count = document.querySelectorAll('.student-checkbox:checked').length;
+        document.getElementById('selected-count').innerText = count;
+    }
+
+    async function sendEmails() {
+        const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+        const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        const subject = document.getElementById('email-subject').value;
+        const body = document.getElementById('email-body').value;
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+        if (ids.length === 0) {
+            alert("Please select at least one student.");
+            return;
+        }
+
+        const btn = document.getElementById('send-btn');
+        btn.disabled = true;
+
+        const progressContainer = document.getElementById('progress-container');
+        progressContainer.classList.remove('hidden');
+        progressContainer.innerHTML = '<div>Initiating...</div>';
+
+        try {
+            const res = await fetch('/admin/api/send-grades', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    student_ids: ids,
+                    subject: subject,
+                    body: body
+                })
+            });
+
+            if (res.status === 403) {
+                // Auth required
+                // Try to parse json to see if it is auth_required
+                try {
+                    const data = await res.json();
+                    if (data.error === 'auth_required') {
+                         if (confirm("Gmail permission is required to send emails. Click OK to authorize.")) {
+                             // Redirect to auth
+                             window.location.href = "/admin/auth/gmail";
+                         } else {
+                             btn.disabled = false;
+                         }
+                         return;
+                    }
+                } catch(e) {}
+
+                alert("Unauthorized or Permission Missing");
+                btn.disabled = false;
+                return;
+            }
+
+            if (!res.ok) {
+                throw new Error("Server Error");
+            }
+
+            // Read Stream
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.replace('data: ', '').trim();
+                        if (dataStr === 'close') break;
+
+                        try {
+                            const data = JSON.parse(dataStr);
+                            const logLine = document.createElement('div');
+                            if (data.status === 'sent') {
+                                logLine.className = 'text-green-400';
+                                logLine.textContent = `[SUCCESS] ${data.name}: Sent`;
+                            } else {
+                                logLine.className = 'text-red-400';
+                                logLine.textContent = `[FAILED] ${data.name || data.student_id}: ${data.error}`;
+                            }
+                            progressContainer.appendChild(logLine);
+                            progressContainer.scrollTop = progressContainer.scrollHeight;
+                        } catch(e) {}
+                    }
+                }
+            }
+
+            const doneLine = document.createElement('div');
+            doneLine.className = 'text-white font-bold mt-2';
+            doneLine.textContent = '--- Finished ---';
+            progressContainer.appendChild(doneLine);
+            progressContainer.scrollTop = progressContainer.scrollHeight;
+
+        } catch (e) {
+            console.error(e);
+            progressContainer.innerHTML += `<div class="text-red-500 font-bold">Error: ${e.message}</div>`;
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
 </script>
 
 
@@ -514,22 +760,8 @@
         // We need 'is_deadline_passed' logic in JS or from server? 
         // Server returned 'is_effectively_open'. But visual display distinguishes 'expired'.
 
-        let text = "";
-        let classes = "px-3 py-1 text-xs font-bold rounded-full transition-colors ";
-
-        // Re-calculate expired in JS? Or rely on server? 
         // Let's use JS logic to be snappy
         const now = new Date();
-        const deadlineDate = data.deadline ? new Date(data.deadline) : null; // UTC String parsed by JS is usually local? No, if ends with Z it is UTC.
-        // data.deadline from server is isoformat. Python isoformat doesn't always have Z if naive, but we store it?
-        // Wait, main.py sends .isoformat(). If it's naive in DB, it sends naive. Frontend handles it?
-        // Let's just assume if !is_effectively_open and is_open -> Expired.
-
-        // Actually, let's use the visual logic from Template:
-        // if not is_open: CLOSED (Gray)
-        // else if deadline < now:EXPIRED (Red)
-        // else if deadline: OPEN UNTIL ... (Blue)
-        // else: OPEN (Green)
 
         let isExpired = false;
         if (data.deadline) {
@@ -540,6 +772,9 @@
             if (!dStr.endsWith('Z')) dStr += 'Z';
             if (new Date(dStr) < now) isExpired = true;
         }
+
+        let text = "";
+        let classes = "px-3 py-1 text-xs font-bold rounded-full transition-colors ";
 
         if (!data.is_open) {
             classes += "bg-slate-100 text-slate-500 hover:bg-slate-200";
