@@ -45,8 +45,9 @@ jobs:
 
     - name: Run Tests
       # -T disables pseudo-tty allocation which is better for CI logs
+      # Using 'uv run' ensures we use the correct environment and tools installed by uv
       run: |
-        docker compose -f docker-compose.debug.yml exec -T web pytest
+        docker compose -f docker-compose.debug.yml exec -T web uv run pytest
     
     - name: Show Logs on Failure
       if: failure()
