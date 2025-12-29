@@ -5,15 +5,19 @@ WORKDIR /app
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Install system dependencies if required (e.g. for pandas/numpy compilation sometimes)
-# Added WeasyPrint dependencies: libcairo2, libpango-1.0-0, libpangocairo-1.0-0, libgdk-pixbuf2.0-0, shared-mime-info
+# Install system dependencies
+# Split into two steps to avoid Memory Exhaustion on low-resource builders
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install WeasyPrint dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libgdk-pixbuf-2.0-0 \
-    libffi-dev \
     shared-mime-info \
     fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
