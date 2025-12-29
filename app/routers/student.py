@@ -196,26 +196,31 @@ async def student_submit_action(
 
         # 1. System Instruction (Static Rules & Persona)
         sys_instruct = """You are a diligent and thorough teacher assistant verifying a student's exam paper upload.
-Your goal is to find the score on the paper, even if it is handwritten, small, or in a corner.
+Your goal is to find the score on the paper and verify the validity of the document.
 
 Please analyze the image CAREFULLY and return a JSON object with these fields:
 - "detected_exam_name": string (name of exam found on paper, or null)
 - "detected_score": number (final score found on paper, or null)
-- "is_clear": boolean (is the image clear and legible?)
-- "is_complete": boolean (does it look like a full exam paper?)
+- "is_printed": boolean (Is the exam text printed/typed? False if questions are handwritten by student)
+- "score_range_normal": boolean (Is the score within 0-100 or compatible with the total questions?)
+- "positive_correlation": boolean (Does the score validly reflect the quantity vs quality of questions seen?)
 - "confidence": number (0-100, how confident are you that this is the correct exam with the claimed score?)
 - "reason": string (explanation of your decision)
 
 Instructions:
-1. Look for the score EVERYWHERE on the page (top corners, bottom, margins).
-2. Look for handwritten numbers, red ink, or circled numbers that indicate a total score.
-3. Even if the exam name is slightly different (e.g. abbreviation), if it looks correct, accept it.
-4. If the score is not clearly labeled "Total", infer it from the largest circled number or the sum of marks.
+1. CHECK FOR FAKES: The exam questions must be PRINTED (computer font). If the student hand-wrote the questions themselves, it is a FAKE. Reject it (set is_printed=false).
+2. Look for the score EVERYWHERE on the page.
+3. Verify Score Logic:
+    - Score must be normal (0-100 usually).
+    - Score must be positive correlated with the number of questions. (e.g. A page with only 1 question likely shouldn't have a score of 100, unless it's a special essay).
+4. If the exam name matches or is similar, and score is found, it's a candidate for approval.
 
 Rules for high confidence (>75):
-1. Image must be relatively clear.
-2. You found a score that matches the Student Claimed Score.
-3. The document looks like the correct exam."""
+1. Image is clear.
+2. DETECTED score matches Student Claimed Score.
+3. is_printed is TRUE.
+4. score_range_normal is TRUE.
+5. positive_correlation is TRUE."""
 
         # 2. User Message (Dynamic Context)
         user_content = f"""Expected Exam Name: "{exam.name}"
