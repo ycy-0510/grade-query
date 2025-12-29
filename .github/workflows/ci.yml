@@ -30,7 +30,7 @@ jobs:
 
     - name: Build and Start Services
       run: |
-        docker compose -f docker-compose.debug.yml up -d --build
+        docker compose -f docker-compose.ci.yml up -d --build
 
     - name: Wait for Database
       # We rely on the healthcheck in docker-compose, but we need to wait for the 'web' service 
@@ -40,15 +40,15 @@ jobs:
       # However, we need to ensure everything is ready before exec.
       run: |
         echo "Waiting for services to be healthy..."
-        timeout 60s bash -c 'until docker compose -f docker-compose.debug.yml ps db | grep "healthy"; do sleep 2; done'
+        timeout 60s bash -c 'until docker compose -f docker-compose.ci.yml ps db | grep "healthy"; do sleep 2; done'
         echo "Database is healthy!"
 
     - name: Run Tests
       # -T disables pseudo-tty allocation which is better for CI logs
       run: |
-        docker compose -f docker-compose.debug.yml exec -T web pytest
+        docker compose -f docker-compose.ci.yml exec -T web pytest
     
     - name: Show Logs on Failure
       if: failure()
       run: |
-        docker compose -f docker-compose.debug.yml logs
+        docker compose -f docker-compose.ci.yml logs
