@@ -368,6 +368,20 @@
                 </button>
             </div>
 
+            {% if not gmail_connected %}
+            <div class="p-8 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 mb-4">
+                    <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">Connect Gmail</h3>
+                <p class="text-sm text-gray-500 mb-6">To send emails on your behalf, we need permission to access your Gmail account.</p>
+                <a href="/admin/auth/gmail" class="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
+                    Authorize Gmail
+                </a>
+            </div>
+            {% else %}
             <form action="/admin/send-grades" method="post" class="p-6">
                 <input type="hidden" name="csrf_token" value="{{ request.session.csrf_token }}">
 
@@ -415,6 +429,7 @@
                     Send Emails
                 </button>
             </form>
+            {% endif %}
         </div>
     </div>
 </div>

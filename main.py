@@ -243,6 +243,42 @@ async def logout(request: Request):
     request.session.pop('user', None)
     return RedirectResponse(url='/')
 
+# --- Gmail Auth Routes ---
+@app.get("/admin/auth/gmail")
+async def auth_gmail(request: Request):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        return RedirectResponse("/")
+
+    redirect_uri = request.url_for('auth_gmail_callback')
+    # Force HTTPS if behind proxy
+    if request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https":
+        redirect_uri = str(redirect_uri).replace("http://", "https://")
+
+    return await oauth.google.authorize_redirect(
+        request,
+        redirect_uri,
+        scope='openid email profile https://www.googleapis.com/auth/gmail.send',
+        include_granted_scopes='true'
+    )
+
+@app.get("/admin/auth/gmail/callback")
+async def auth_gmail_callback(request: Request):
+    user = request.session.get('user')
+    if not user or user['role'] != 'admin':
+        return RedirectResponse("/")
+
+    try:
+        token = await oauth.google.authorize_access_token(request)
+        # Update user session with new token
+        user['token'] = token
+        request.session['user'] = user
+    except Exception as e:
+        # Handle error
+        print(f"Gmail Auth Failed: {e}")
+
+    return RedirectResponse(url='/admin')
+
 # --- Main Routes ---
 
 @app.get("/", response_class=HTMLResponse)
@@ -276,11 +312,18 @@ async def admin_dashboard(request: Request, session: Session = Depends(get_sessi
     
     exams = get_all_exams(session)
     students = get_all_students(session) # Fetch all students for the email modal
+
+    # Check for Gmail permission
+    gmail_connected = False
+    if user.get('token') and 'https://www.googleapis.com/auth/gmail.send' in user['token'].get('scope', ''):
+        gmail_connected = True
+
     lang = request.cookies.get("lang", "en")
     return templates.TemplateResponse("admin.html", {
         "request": request, 
         "exams": exams, 
         "students": students,
+        "gmail_connected": gmail_connected,
         "lang": lang,
         "now_utc": datetime.utcnow()
     })
