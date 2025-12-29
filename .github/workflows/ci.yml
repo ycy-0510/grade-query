@@ -9,30 +9,46 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      db:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-          MYSQL_DATABASE: grade_system
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
+    
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.12
-    - name: Install dependencies
+
+    - name: Create .env file
       run: |
-        pip install uv
-        uv sync
+        echo "MYSQL_ROOT_PASSWORD=rootpassword" >> .env
+        echo "MYSQL_DATABASE=grade_system" >> .env
+        echo "DATABASE_URL=mysql+pymysql://root:rootpassword@db:3306/grade_system" >> .env
+        echo "SECRET_KEY=test_secret_key" >> .env
+        echo "INITIAL_ADMIN_EMAIL=admin@example.com" >> .env
+        echo "EMAIL_SENDER_NAME=CI Admin" >> .env
+        echo "GEMINI_API_KEY=dummy_key" >> .env
+        echo "GEMINI_MODEL=gemini-3-flash-preview" >> .env
+        echo "TURNSTILE_SITE_KEY=dummy_site_key" >> .env
+        echo "TURNSTILE_SECRET_KEY=dummy_secret_key" >> .env
+        echo "GOOGLE_CLIENT_ID=dummy_client_id" >> .env
+        echo "GOOGLE_CLIENT_SECRET=dummy_client_secret" >> .env
+
+    - name: Build and Start Services
+      run: |
+        docker compose -f docker-compose.debug.yml up -d --build
+
+    - name: Wait for Database
+      # We rely on the healthcheck in docker-compose, but we need to wait for the 'web' service 
+      # (which depends on 'db' healthy) to be up or just check db explicitly.
+      # 'docker compose up -d' returns when containers are started, not healthy.
+      # But depend_on with condition: service_healthy ensures web doesn't start until db is healthy.
+      # However, we need to ensure everything is ready before exec.
+      run: |
+        echo "Waiting for services to be healthy..."
+        timeout 60s bash -c 'until docker compose -f docker-compose.debug.yml ps db | grep "healthy"; do sleep 2; done'
+        echo "Database is healthy!"
+
     - name: Run Tests
-      env:
-        DATABASE_URL: mysql+pymysql://root:rootpassword@127.0.0.1:3306/grade_system
-        PYTHONPATH: .
+      # -T disables pseudo-tty allocation which is better for CI logs
       run: |
-        source .venv/bin/activate
-        pytest
+        docker compose -f docker-compose.debug.yml exec -T web pytest
+    
+    - name: Show Logs on Failure
+      if: failure()
+      run: |
+        docker compose -f docker-compose.debug.yml logs
