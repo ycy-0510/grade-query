@@ -27,6 +27,7 @@ services:
       # Initial Admin Setup
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       SECRET_KEY: ${SECRET_KEY}
+      EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-Grade System Admin}
       # AI & Captcha
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
