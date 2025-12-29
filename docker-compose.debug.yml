@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   db:
@@ -8,6 +8,11 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - ./mysql_data:/var/lib/mysql
 
@@ -27,11 +32,13 @@ services:
       # Initial Admin Setup
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
       SECRET_KEY: ${SECRET_KEY}
+      EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-Grade System Admin}
       # AI & Captcha
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped

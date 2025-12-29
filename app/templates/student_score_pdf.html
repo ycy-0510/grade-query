@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Grade Report</title>
+    <!-- Use inline styles for WeasyPrint compatibility, but mock Tailwind classes -->
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: 'Noto Sans CJK SC', sans-serif;
+                font-size: 10px;
+                color: #666;
+            }
+        }
+
+        body {
+            font-family: 'Noto Sans CJK SC', sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+        }
+
+        .header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 20px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .student-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .info-group h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin: 0 0 5px 0;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+        }
+
+        .info-group p {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .summary-card {
+            background-color: #f1f5f9;
+            border-left: 5px solid #6366f1;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+
+        .summary-title {
+            color: #6366f1;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-score {
+            font-size: 36px;
+            font-weight: bold;
+            color: #1e1b4b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            background-color: #f8fafc;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .score-val {
+            font-weight: bold;
+        }
+
+        .included-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #15803d;
+            background-color: #dcfce7;
+            border-radius: 9999px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .ignored-text {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">{{ translations[lang]['student_report'] }}</div>
+        <div class="subtitle">Generated on {{ now_utc.strftime('%Y-%m-%d') }}</div>
+    </div>
+
+    <div class="student-info">
+        <div class="info-group">
+            <h3>{{ translations[lang]['name'] }}</h3>
+            <p>{{ report.user_name }}</p>
+        </div>
+        <div class="info-group">
+            <h3>{{ translations[lang]['seat_number'] }}</h3>
+            <p>{{ report.seat_number }}</p>
+        </div>
+    </div>
+
+    <div class="summary-card">
+        <div class="summary-title">{{ translations[lang]['top_average'] }} (Top 20)</div>
+        <div class="summary-score">{{ report.average }}</div>
+        <div style="margin-top: 5px; font-size: 12px; color: #64748b;">
+            {{ translations[lang]['based_on_exams'].format(report.exam_count) }}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="50%">{{ translations[lang]['exam_name'] }}</th>
+                <th width="20%">{{ translations[lang]['score'] }}</th>
+                <th width="15%">{{ translations[lang]['type'] }}</th>
+                <th width="15%" style="text-align: right;">{{ translations[lang]['status'] }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in report.details %}
+            <tr>
+                <td>{{ item.exam_name }}</td>
+                <td class="score-val" style="{% if item.included %}color: #15803d;{% else %}color: #64748b;{% endif %}">
+                    {% if item.score is none %}
+                        -
+                    {% else %}
+                        {{ item.score }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.is_mandatory %}
+                    <span style="color: #b91c1c; font-weight: bold; font-size: 12px;">{{ translations[lang]['mandatory'] }}</span>
+                    {% else %}
+                    <span style="color: #475569; font-size: 12px;">{{ translations[lang]['optional'] }}</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    {% if item.included %}
+                    <span class="included-badge">{{ translations[lang]['included'] }}</span>
+                    {% else %}
+                    <span class="ignored-text">{{ translations[lang]['ignored'] }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>This report acts as an official record of your grades.</p>
+    </div>
+</body>
+</html>

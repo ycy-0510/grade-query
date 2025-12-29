@@ -7,7 +7,7 @@ from app.core.database import init_db, engine
 from app.core.i18n import TRANSLATIONS
 from app.crud import cleanup_old_login_logs
 from sqlmodel import Session
-from app.routers import auth, admin, student, general
+from app.routers import auth, admin, student, general, admin_email_auth, admin_email_api
 from fastapi.responses import JSONResponse
 from fastapi import Depends
 from app.dependencies import is_admin
@@ -41,6 +41,8 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 app.include_router(general.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(admin_email_auth.router)
+app.include_router(admin_email_api.router)
 app.include_router(student.router)
 
 @app.on_event("startup")
