@@ -12,6 +12,19 @@ from app.services.email import send_bulk_emails
 
 router = APIRouter()
 
+@router.get("/admin/api/email-status")
+async def get_email_auth_status(request: Request, user: dict = Depends(is_admin)):
+    """
+    Returns the current Gmail authentication status.
+    """
+    gmail_token = request.session.get('gmail_token')
+    sender_email = request.session.get('gmail_sender_email')
+
+    return JSONResponse({
+        "authenticated": bool(gmail_token),
+        "sender_email": sender_email
+    })
+
 @router.get("/admin/api/students")
 async def get_students_for_email(request: Request, session: Session = Depends(get_session), user: dict = Depends(is_admin)):
     """

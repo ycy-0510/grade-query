@@ -259,6 +259,17 @@
             </div>
 
             <div class="px-4 py-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <!-- Auth Status Banner -->
+                <div class="md:col-span-3 mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                        <span class="text-sm font-bold text-gray-600">Gmail Auth Status:</span>
+                        <span id="auth-status-text" class="text-sm ml-2 text-gray-500">Checking...</span>
+                    </div>
+                    <a href="/admin/auth/gmail" class="text-xs font-bold text-blue-600 hover:text-blue-800 border border-blue-200 bg-white px-3 py-1.5 rounded hover:bg-blue-50 transition-colors">
+                        Change Account / Re-Authorize
+                    </a>
+                </div>
+
                 <!-- Left: Student List -->
                 <div class="md:col-span-1 border-r border-slate-200 pr-4">
                     <div class="flex justify-between items-center mb-2">
@@ -329,6 +340,10 @@
 
     function openEmailModal() {
         document.getElementById('emailModal').classList.remove('hidden');
+
+        // Check Auth Status
+        checkAuthStatus();
+
         if (!studentsLoaded) {
             fetchStudents();
         }
@@ -344,6 +359,27 @@
             // Maybe show a toast?
             // Remove param
             window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    async function checkAuthStatus() {
+        const statusEl = document.getElementById('auth-status-text');
+        try {
+            const res = await fetch('/admin/api/email-status');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.authenticated) {
+                    let text = '<span class="text-green-600 font-bold">Authenticated</span>';
+                    if (data.sender_email) {
+                        text += ` as <span class="text-gray-900 font-mono">${data.sender_email}</span>`;
+                    }
+                    statusEl.innerHTML = text;
+                } else {
+                    statusEl.innerHTML = '<span class="text-red-500 font-bold">Not Authenticated</span>';
+                }
+            }
+        } catch(e) {
+            statusEl.textContent = 'Error checking status';
         }
     }
 

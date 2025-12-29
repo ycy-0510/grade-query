@@ -7,6 +7,7 @@ from email.mime.application import MIMEApplication
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from app.services.pdf import generate_student_pdf_bytes
+from app.crud import calculate_student_grades
 from sqlmodel import Session
 import logging
 
@@ -31,8 +32,14 @@ async def send_email_task(
         return {"student_id": student_id, "status": "failed", "error": "Student not found or no email"}
 
     try:
-        # Generate PDF
-        pdf_bytes = await asyncio.to_thread(generate_student_pdf_bytes, student_id, session)
+        # Fetch data in main thread (thread-safe for session)
+        report = calculate_student_grades(student_id, session)
+        if not report:
+             return {"student_id": student_id, "name": student.name, "status": "failed", "error": "No grade data"}
+
+        # Generate PDF in thread to avoid blocking loop
+        # We pass the report object, not the session, to ensure thread safety
+        pdf_bytes = await asyncio.to_thread(generate_student_pdf_bytes, report)
 
         # Build Email
         message = MIMEMultipart()
@@ -41,10 +48,6 @@ async def send_email_task(
 
         # Ensure sender name is respected
         # Gmail API uses the authenticated user's email, but 'from' header can set display name
-        # Format: "Name <email>"
-        # We don't know the admin's email easily here unless we passed it, but Gmail API overrides the email address part anyway.
-        # We can try setting "Sender Name <admin@example.com>" if we knew the admin email.
-        # Or just "Sender Name".
         message['from'] = sender_name
 
         # Body
@@ -96,17 +99,12 @@ async def send_bulk_emails(
     processed = 0
 
     # Rate limit: 5 per second = 0.2s interval.
-    # We can process sequentially with sleep, or parallel with semaphore + sleep.
-    # Sequential is safer to guarantee order and limit.
 
     for sid in student_ids:
         start_time = asyncio.get_event_loop().time()
 
-        # Create a fresh DB session for each task or pass one?
-        # Since this is an async generator running potentially for a while,
-        # holding one session open might be okay, but 'asyncio.to_thread' might conflict if session is not thread-safe.
-        # SQLModel sessions are not thread-safe.
-        # Better to create a new session per email or batch.
+        # Create a fresh DB session for each task or batch
+        # Using session_factory ensures we don't reuse sessions across async boundaries in ways that might break (e.g. SQLite)
 
         with session_factory() as session:
             result = await send_email_task(user_creds, sid, subject, body, sender_name, session)

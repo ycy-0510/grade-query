@@ -3,19 +3,17 @@ from app.core.i18n import TRANSLATIONS
 from datetime import datetime
 from weasyprint import HTML
 import io
-from app.crud import calculate_student_grades
-from sqlmodel import Session
 
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals['translations'] = TRANSLATIONS
 
-def generate_student_pdf_bytes(student_id: int, session: Session, lang: str = "en") -> bytes:
+def generate_student_pdf_bytes(report, lang: str = "en") -> bytes:
     """
     Generates a PDF byte string for the student's grade report.
+    Takes a report dictionary (calculated data), not a session, to ensure thread safety.
     """
-    report = calculate_student_grades(student_id, session)
     if not report:
-        raise ValueError(f"Student {student_id} not found or no data.")
+        raise ValueError(f"No report data provided.")
 
     # Render HTML
     template = templates.get_template("student_score_pdf.html")
