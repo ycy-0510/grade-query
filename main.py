@@ -31,7 +31,8 @@ from crud import (
 )
 from i18n import TRANSLATIONS
 from fastapi import BackgroundTasks
-from email_service import generate_pdf, send_grade_email
+from email_service import generate_pdf, send_grade_email_gmail
+from google.oauth2.credentials import Credentials
 import asyncio
 
 # Disable default OpenAPI
@@ -207,7 +208,8 @@ async def auth_google(request: Request, session: Session = Depends(get_session))
         'email': db_user.email,
         'name': db_user.name,
         'role': db_user.role,
-        'seat_number': db_user.seat_number
+        'seat_number': db_user.seat_number,
+        'token': token # Save token for Gmail API
     }
     
     
@@ -548,7 +550,7 @@ async def export_grades_excel(request: Request, session: Session = Depends(get_s
     }
     return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
-async def process_grade_emails(student_ids: List[int], lang: str):
+async def process_grade_emails(student_ids: List[int], lang: str, creds: Credentials):
     """
     Background task to process emails.
     Re-creates session inside task to be thread-safe/independent.
@@ -571,8 +573,8 @@ async def process_grade_emails(student_ids: List[int], lang: str):
                 # 3. Generate PDF (Offload to thread to avoid blocking event loop)
                 pdf_bytes = await asyncio.to_thread(generate_pdf, report, lang)
 
-                # 4. Send Email
-                success = await send_grade_email(user.email, user.name, pdf_bytes, lang)
+                # 4. Send Email using Gmail API (Offload to thread to avoid blocking event loop)
+                success = await asyncio.to_thread(send_grade_email_gmail, creds, user.email, user.name, pdf_bytes, lang)
 
                 if success:
                     print(f"Successfully sent grade report to {user.email}")
@@ -595,12 +597,34 @@ async def send_grades_route(
     if not user or user['role'] != 'admin':
         raise HTTPException(status_code=403, detail="Unauthorized")
 
+    token = user.get('token')
+    if not token:
+        # Should prompt re-login, but for now error
+        return templates.TemplateResponse("admin.html", {
+            "request": request,
+            "exams": get_all_exams(session),
+            "students": get_all_students(session),
+            "error": "No Google Token found. Please re-login.",
+            "lang": request.cookies.get("lang", "en"),
+            "now_utc": datetime.utcnow()
+        })
+
+    # Construct Credentials object
+    creds = Credentials(
+        token=token['access_token'],
+        refresh_token=token.get('refresh_token'),
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+        client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+        scopes=token.get('scope')
+    )
+
     if not student_ids:
         # Redirect with error?
         pass
 
     # Trigger Background Task
-    background_tasks.add_task(process_grade_emails, student_ids, language)
+    background_tasks.add_task(process_grade_emails, student_ids, language, creds)
 
     exams = get_all_exams(session)
     students = get_all_students(session)

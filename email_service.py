@@ -1,41 +1,14 @@
 import os
+import base64
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from googleapiclient.discovery import build
 from datetime import datetime
 
 from i18n import TRANSLATIONS
-
-# --- Configuration ---
-# Infer TLS/SSL from Port if not explicitly set
-# Port 587 usually STARTTLS, 465 usually SSL/TLS
-mail_port = int(os.environ.get("MAIL_PORT", 587))
-use_tls = os.environ.get("MAIL_STARTTLS", "").lower() == "true"
-use_ssl = os.environ.get("MAIL_SSL_TLS", "").lower() == "true"
-
-# Auto-inference if not set
-if "MAIL_STARTTLS" not in os.environ and "MAIL_SSL_TLS" not in os.environ:
-    if mail_port == 587:
-        use_tls = True
-        use_ssl = False
-    elif mail_port == 465:
-        use_tls = False
-        use_ssl = True
-
-conf = ConnectionConfig(
-    MAIL_USERNAME=os.environ.get("MAIL_USERNAME", ""),
-    MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD", ""),
-    MAIL_FROM=os.environ.get("MAIL_FROM", "noreply@example.com"),
-    MAIL_FROM_NAME=os.environ.get("MAIL_FROM_NAME", "Grade System"),
-    MAIL_PORT=mail_port,
-    MAIL_SERVER=os.environ.get("MAIL_SERVER", "smtp.gmail.com"),
-    MAIL_STARTTLS=use_tls,
-    MAIL_SSL_TLS=use_ssl,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
-
-fastmail = FastMail(conf)
 
 # Jinja Setup for PDF
 template_env = Environment(loader=FileSystemLoader("templates"))
@@ -63,14 +36,16 @@ def generate_pdf(report_data: dict, lang: str = "en") -> bytes:
 
     return pdf_bytes
 
-async def send_grade_email(
+def send_grade_email_gmail(
+    creds,
     student_email: str,
     student_name: str,
     pdf_bytes: bytes,
     lang: str = "en"
 ):
     """
-    Sends an email with the grade report PDF attached.
+    Sends an email with the grade report PDF attached using Gmail API.
+    Blocking function, should be run in a thread.
     """
 
     subject_map = {
@@ -91,25 +66,26 @@ async def send_grade_email(
         """
     }
 
-    message = MessageSchema(
-        subject=subject_map.get(lang, subject_map["en"]),
-        recipients=[student_email],
-        body=body_map.get(lang, body_map["en"]),
-        subtype=MessageType.html,
-        attachments=[
-            {
-                "file": pdf_bytes,
-                "filename": f"Grade_Report_{student_name}.pdf",
-                "mime_type": "application/pdf",
-                "headers": {}
-            }
-        ]
-    )
-
     try:
-        await fastmail.send_message(message)
-        print(f"Email sent to {student_email}")
+        service = build('gmail', 'v1', credentials=creds, cache_discovery=False)
+
+        message = MIMEMultipart()
+        message['to'] = student_email
+        message['subject'] = subject_map.get(lang, subject_map["en"])
+
+        html_part = MIMEText(body_map.get(lang, body_map["en"]), 'html')
+        message.attach(html_part)
+
+        # Attachment
+        part = MIMEApplication(pdf_bytes, Name=f"Grade_Report_{student_name}.pdf")
+        part['Content-Disposition'] = f'attachment; filename="Grade_Report_{student_name}.pdf"'
+        message.attach(part)
+
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+
+        service.users().messages().send(userId='me', body={'raw': raw_message}).execute()
+        print(f"Email sent to {student_email} via Gmail API")
         return True
     except Exception as e:
-        print(f"Failed to send email to {student_email}: {e}")
+        print(f"Failed to send email to {student_email} via Gmail API: {e}")
         return False
