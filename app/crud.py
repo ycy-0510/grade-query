@@ -187,20 +187,40 @@ def process_excel_upload(file_obj, session: Session) -> Dict[str, int]:
     session.commit()
     return stats
 
-def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
+def calculate_student_grades(
+    user_id: int,
+    session: Session,
+    user: Optional[User] = None,
+    all_exams: Optional[List[ExamType]] = None,
+    score_map: Optional[Dict[int, float]] = None,
+    include_submission_status: bool = True
+) -> Dict[str, Any]:
     """
     Implements the Top 20 Rule.
     - Mandatory exams: Must be included. If missing, count as 0.
     - Optional exams: Only Top N used to fill up to 20 slots.
+
+    Optimization:
+    - Supports dependency injection for bulk operations (user, all_exams, score_map).
+    - include_submission_status: If False, skips DB checks for submissions (faster for Excel export).
     """
-    user = session.get(User, user_id)
+    if not user:
+        user = session.get(User, user_id)
     if not user:
         return {}
         
-    # 1. Fetch All Exams and User's Scores
-    all_exams = get_all_exams(session)
-    scores = session.exec(select(Score).where(Score.user_id == user_id)).all()
-    score_map = {s.exam_type_id: s.score for s in scores}
+    # 1. Fetch All Exams and User's Scores (if not provided)
+    if all_exams is None:
+        all_exams = get_all_exams(session)
+
+    if score_map is None:
+        scores = session.exec(select(Score).where(Score.user_id == user_id)).all()
+        score_map = {s.exam_type_id: s.score for s in scores}
+
+        # We need to count valid exams later, but we only have score_map here if passed.
+        # If score_map is passed, we assume caller handles specific logic or we reconstruct.
+        # But wait, original code used 'scores' list for valid_exam_count.
+        # If score_map is passed, we can iterate it.
     
     mandatory_items = []
     optional_items = []
@@ -212,7 +232,7 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
         
         # Check submission eligibility
         can_submit = False
-        if is_exam_effectively_open(exam) and score_val is None:
+        if include_submission_status and is_exam_effectively_open(exam) and score_val is None:
              count, status = get_student_submission_status(session, user_id, exam.id)
              if count < 3 and status != SubmissionStatus.APPROVED:
                  can_submit = True
@@ -279,8 +299,9 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
         
     # Calculate valid exams count (> 0)
     valid_exam_count = 0
-    for s in scores:
-        if isinstance(s.score, (int, float)) and s.score > 0:
+    # Use score_map values since we might not have 'scores' object list if injected
+    for s_val in score_map.values():
+        if isinstance(s_val, (int, float)) and s_val > 0:
             valid_exam_count += 1
 
     return {
@@ -510,12 +531,33 @@ def generate_grades_excel(session: Session):
     # Get all exams for columns headers (sorted by Type/Name)
     all_exams = get_all_exams(session)
     
+    # Pre-fetch ALL scores for ALL students to avoid N+1 queries
+    # Fetching raw tuples (user_id, exam_id, score)
+    all_scores = session.exec(select(Score)).all()
+
+    # Organize scores by user_id
+    # user_scores_map: Dict[user_id, Dict[exam_id, score]]
+    user_scores_map = {}
+    for s in all_scores:
+        if s.user_id not in user_scores_map:
+            user_scores_map[s.user_id] = {}
+        user_scores_map[s.user_id][s.exam_type_id] = s.score
+
     data = []
     
     for student in students:
         # Calculate grade report
-        # Note: This executes a query per student. Acceptable for typical school sizes.
-        report = calculate_student_grades(student.id, session)
+        # Optimization: Pass pre-fetched data and disable submission status check
+        s_map = user_scores_map.get(student.id, {})
+
+        report = calculate_student_grades(
+            user_id=student.id,
+            session=session,
+            user=student,
+            all_exams=all_exams,
+            score_map=s_map,
+            include_submission_status=False
+        )
         
         row = {
             "Seat Number": student.seat_number,
