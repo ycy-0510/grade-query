@@ -187,7 +187,13 @@ def process_excel_upload(file_obj, session: Session) -> Dict[str, int]:
     session.commit()
     return stats
 
-def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
+def calculate_student_grades(
+    user_id: int,
+    session: Session,
+    all_exams: Optional[List[ExamType]] = None,
+    user_scores: Optional[List[Score]] = None,
+    skip_submission_check: bool = False
+) -> Dict[str, Any]:
     """
     Implements the Top 20 Rule.
     - Mandatory exams: Must be included. If missing, count as 0.
@@ -198,8 +204,14 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
         return {}
         
     # 1. Fetch All Exams and User's Scores
-    all_exams = get_all_exams(session)
-    scores = session.exec(select(Score).where(Score.user_id == user_id)).all()
+    if all_exams is None:
+        all_exams = get_all_exams(session)
+
+    if user_scores is None:
+        scores = session.exec(select(Score).where(Score.user_id == user_id)).all()
+    else:
+        scores = user_scores
+
     score_map = {s.exam_type_id: s.score for s in scores}
     
     mandatory_items = []
@@ -212,7 +224,7 @@ def calculate_student_grades(user_id: int, session: Session) -> Dict[str, Any]:
         
         # Check submission eligibility
         can_submit = False
-        if is_exam_effectively_open(exam) and score_val is None:
+        if not skip_submission_check and is_exam_effectively_open(exam) and score_val is None:
              count, status = get_student_submission_status(session, user_id, exam.id)
              if count < 3 and status != SubmissionStatus.APPROVED:
                  can_submit = True
@@ -510,12 +522,28 @@ def generate_grades_excel(session: Session):
     # Get all exams for columns headers (sorted by Type/Name)
     all_exams = get_all_exams(session)
     
+    # Pre-fetch all scores for students to avoid N+1
+    all_scores = session.exec(select(Score).join(User).where(User.role == UserRole.STUDENT)).all()
+
+    # Group scores by user_id
+    scores_by_user = {}
+    for score in all_scores:
+        if score.user_id not in scores_by_user:
+            scores_by_user[score.user_id] = []
+        scores_by_user[score.user_id].append(score)
+
     data = []
     
     for student in students:
         # Calculate grade report
-        # Note: This executes a query per student. Acceptable for typical school sizes.
-        report = calculate_student_grades(student.id, session)
+        user_scores = scores_by_user.get(student.id, [])
+        report = calculate_student_grades(
+            student.id,
+            session,
+            all_exams=all_exams,
+            user_scores=user_scores,
+            skip_submission_check=True
+        )
         
         row = {
             "Seat Number": student.seat_number,
